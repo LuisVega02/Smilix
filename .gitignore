@@ -2,6 +2,8 @@
 # Dependencias y directorios
 # ============================================================
 node_modules/
+.pnpm-store/
+.npm/
 dist/
 build/
 .next/
