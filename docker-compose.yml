@@ -1,0 +1,101 @@
+services:
+  # ============================================================
+  # PostgreSQL - Base de datos principal
+  # ============================================================
+  postgres:
+    container_name: clinic_postgres
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER:-clinicuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-clinicpass123}
+      POSTGRES_DB: ${DB_NAME:-clinic_db}
+      POSTGRES_INITDB_ARGS: --encoding=UTF8
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-clinicuser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - clinic_network
+
+  # ============================================================
+  # pgAdmin - Gestor visual de la base de datos
+  # ============================================================
+  pgadmin:
+    container_name: clinic_pgadmin
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@clinic.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - clinic_network
+
+  # ============================================================
+  # Backend - API REST con NestJS
+  # ============================================================
+  backend:
+    container_name: clinic_backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${DB_USER:-clinicuser}:${DB_PASSWORD:-clinicpass123}@postgres:5432/${DB_NAME:-clinic_db}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - clinic_network
+    command: pnpm start:dev
+
+  # ============================================================
+  # Frontend - Aplicación web con Next.js
+  # ============================================================
+  frontend:
+    container_name: clinic_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - clinic_network
+    command: pnpm dev
+
+# ============================================================
+# Volúmenes
+# ============================================================
+volumes:
+  postgres_data:
+    driver: local
+
+# ============================================================
+# Redes
+# ============================================================
+networks:
+  clinic_network:
+    driver: bridge

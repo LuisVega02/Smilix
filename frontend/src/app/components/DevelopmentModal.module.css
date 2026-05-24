@@ -1,0 +1,56 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(29, 47, 96, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.modal {
+  width: min(100%, 460px);
+  border-radius: 28px;
+  padding: 2rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.title {
+  margin: 1rem 0 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 2.2rem;
+}
+
+.description {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.7;
+}
+
+.actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.primaryButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.35rem;
+  background: var(--primary);
+  color: #f8fbff;
+  font-weight: 700;
+}

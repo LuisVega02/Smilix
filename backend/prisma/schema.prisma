@@ -1,0 +1,218 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// Modelo Usuario - Para autenticación y acceso al sistema
+// ============================================================
+// Este modelo almacena los datos de acceso de los usuarios (doctores, recepcionistas, etc.)
+// La contraseña se debe hashear SIEMPRE antes de guardar en BD
+model User {
+  id        Int     @id @default(autoincrement())
+  
+  // Datos de inicio de sesión
+  email     String  @unique // Email debe ser único en el sistema
+  password  String  // Almacenado como hash (bcrypt) - NUNCA texto plano
+  
+  // Datos del usuario
+  fullName  String  // Nombre completo del usuario
+  role      String  @default("user") // Ej: "admin", "doctor", "receptionist"
+  
+  // Control de cuenta
+  isActive  Boolean @default(true) // Para desactivar cuentas sin borrarlas
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ============================================================
+// Modelo Paciente
+// ============================================================
+model Patient {
+  id         Int      @id @default(autoincrement())
+  firstName  String
+  lastName   String
+  nickname   String?
+  documentId String   @unique
+  email      String?  @unique
+  phone      String?
+  phones     String[] @default([])
+  birthDate  DateTime?
+  age        Int?
+  gender     String?
+  address    String?
+  occupation String?
+  leadSource String?
+  photoUrl   String?
+  guardianFullName     String?
+  guardianRelationship String?
+  guardianDocumentId   String?
+  guardianPhone        String?
+  guardianEmail        String?
+  guardianPhotoUrl     String?
+  anamnesis            String   @default("") @db.Text
+  medicalBackground    String   @default("") @db.Text
+  prenatalBackground   String   @default("") @db.Text
+  postnatalBackground  String   @default("") @db.Text
+  oralHabits           String   @default("") @db.Text
+  dentalDevelopment    String   @default("") @db.Text
+  attachments          String[] @default([])
+  radiographs          String[] @default([])
+  patientPhotos        String[] @default([])
+  status               ClinicalHistoryStatus @default(DRAFT)
+  
+  // Relaciones
+  sessions     MedicalSession[]
+  appointments Appointment[]
+  treatments   Treatment[]
+  payments     Payment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("patients")
+}
+
+model MedicalSession {
+  id                 Int     @id @default(autoincrement())
+  patientId          Int
+  patient            Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date               DateTime
+  doctorResponsible  String
+  consultationReason String          @db.Text
+  diagnosis          String          @db.Text
+  treatmentPlan      String          @db.Text
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@map("medical_sessions")
+}
+
+enum ClinicalHistoryStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+// ============================================================
+// Modelo Cita
+// ============================================================
+model Appointment {
+  id        Int     @id @default(autoincrement())
+  
+  // Relación con paciente
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  // Datos de cita
+  startTime  DateTime
+  endTime    DateTime
+  status     AppointmentStatus @default(SCHEDULED)
+  notes      String?
+  
+  // Relación con tratamiento
+  treatmentId Int?
+  treatment   Treatment? @relation(fields: [treatmentId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("appointments")
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// ============================================================
+// Modelo Tratamiento
+// ============================================================
+model Treatment {
+  id        Int     @id @default(autoincrement())
+  
+  // Relación con paciente
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  // Datos del tratamiento
+  type          String  // Ej: Limpieza, Extracción, Empaste, etc.
+  description   String?
+  status        TreatmentStatus @default(PENDING)
+  startDate     DateTime
+  endDate       DateTime?
+  cost          Decimal @default(0)
+  
+  // Odontograma
+  tooth         Int? // Número de pieza dental (1-32)
+  procedure     String?
+  
+  // Relaciones
+  appointments Appointment[]
+  payments     Payment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("treatments")
+}
+
+enum TreatmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================
+// Modelo Pago
+// ============================================================
+model Payment {
+  id        Int     @id @default(autoincrement())
+  
+  // Relación con paciente
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  // Relación con tratamiento
+  treatmentId Int?
+  treatment   Treatment? @relation(fields: [treatmentId], references: [id])
+  
+  // Datos de pago
+  amount      Decimal
+  paymentDate DateTime @default(now())
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  reference   String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  CASH
+  DEBIT_CARD
+  CREDIT_CARD
+  TRANSFER
+  CHEQUE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
