@@ -86,6 +86,21 @@ services:
       - clinic_network
     command: pnpm dev
 
+  frontend_prod:
+    container_name: clinic_frontend_prod
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - clinic_network
+
 # ============================================================
 # Volúmenes
 # ============================================================

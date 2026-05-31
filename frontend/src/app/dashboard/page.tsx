@@ -26,7 +26,7 @@ const modules: AppModuleCard[] = [
   {
     title: 'Historia clinica',
     description:
-      'Gestiona anamnesis, antecedentes, sesiones medicas y adjuntos desde una sola vista.',
+      'Gestiona anamnesis, antecedentes y adjuntos del paciente desde una sola vista.',
     tag: 'Implementado',
     implemented: true,
     href: '/dashboard/historia-clinica',
@@ -56,8 +56,9 @@ const modules: AppModuleCard[] = [
   {
     title: 'Sesion medica',
     description: 'Registro clinico del dia con doctor, diagnostico y prescripciones.',
-    tag: 'En desarrollo',
-    implemented: false,
+    tag: 'Implementado',
+    implemented: true,
+    href: '/dashboard/sesiones-medicas',
     accent: 'ink',
   },
   {

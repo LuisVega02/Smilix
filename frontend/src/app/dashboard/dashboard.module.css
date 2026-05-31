@@ -46,11 +46,11 @@
   padding: 1.2rem;
   border-radius: 26px;
   background: linear-gradient(180deg, rgba(65, 93, 199, 0.96), rgba(47, 73, 166, 0.96));
-  color: #f8fbff;
+  color: #fcfff8;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
-.profileLabel,
+.profileLabel,s
 .profileMeta {
   display: block;
 }

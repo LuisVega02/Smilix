@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClinicalHistoryModule } from './modules/clinical-history/clinical-history.module';
+import { MedicalSessionsModule } from './modules/medical-sessions/medical-sessions.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -18,7 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
    * 2. Crear: nuevoModulo.module.ts
    * 3. Importar aquí: imports: [NuevoModulo]
    */
-  imports: [PrismaModule, AuthModule, ClinicalHistoryModule],
+  imports: [PrismaModule, AuthModule, ClinicalHistoryModule, MedicalSessionsModule],
 
   /**
    * CONTROLLERS: Controladores globales
