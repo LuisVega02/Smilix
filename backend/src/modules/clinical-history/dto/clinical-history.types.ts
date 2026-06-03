@@ -30,10 +30,26 @@ export interface VitalSignsDto {
   respiratoryRate?: string;
 }
 
+export interface OdontogramDto {
+  data: string;
+  imageUrls?: string[];
+}
+
+export interface MedicalBudgetDto {
+  title: string;
+  description: string;
+  totalCost: number;
+  status?: 'pending' | 'approved' | 'rejected';
+}
+
 export interface MedicalSessionDto {
   date: string;
   doctorResponsible: string;
   consultationReason: string;
+  anamnesis?: string;
+  medicalHistory?: string;
   diagnosis: string;
   treatmentPlan: string;
+  odontogram?: OdontogramDto;
+  budgets?: MedicalBudgetDto[];
 }

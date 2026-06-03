@@ -31,14 +31,6 @@ interface GuardianProfile {
   photoUrl?: string;
 }
 
-interface MedicalSession {
-  date: string;
-  doctorResponsible: string;
-  consultationReason: string;
-  diagnosis: string;
-  treatmentPlan: string;
-}
-
 interface ClinicalHistory {
   id?: number;
   patient: PatientProfile;
@@ -52,7 +44,6 @@ interface ClinicalHistory {
   attachments: string[];
   radiographs: string[];
   patientPhotos: string[];
-  sessions: MedicalSession[];
   status?: 'draft' | 'active' | 'closed';
   createdAt?: string;
   updatedAt?: string;
@@ -91,16 +82,7 @@ const createEmptyHistory = (): ClinicalHistory => ({
   attachments: [],
   radiographs: [],
   patientPhotos: [],
-  sessions: [],
   status: 'draft',
-});
-
-const createEmptySession = (): MedicalSession => ({
-  date: new Date().toISOString().slice(0, 10),
-  doctorResponsible: '',
-  consultationReason: '',
-  diagnosis: '',
-  treatmentPlan: '',
 });
 
 const parseList = (value: string) =>
@@ -110,11 +92,6 @@ const parseList = (value: string) =>
     .filter(Boolean);
 
 const formatList = (items: string[]) => items.join(', ');
-
-const getSessionTimestamp = (date: string) => {
-  const timestamp = Date.parse(date);
-  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
-};
 
 export default function ClinicalHistoryPage() {
   const router = useRouter();
@@ -127,7 +104,6 @@ export default function ClinicalHistoryPage() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState('');
   const [feedback, setFeedback] = useState('');
-  const [isSessionsOpen, setIsSessionsOpen] = useState(false);
 
   useEffect(() => {
     router.prefetch('/dashboard');
@@ -140,7 +116,6 @@ export default function ClinicalHistoryPage() {
         if (response.length > 0) {
           setSelectedHistoryId(response[0].id || null);
           setFormData(response[0]);
-          setIsSessionsOpen(response[0].sessions.length > 0);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'No fue posible cargar historias clinicas';
@@ -151,27 +126,11 @@ export default function ClinicalHistoryPage() {
     };
 
     void loadHistories();
-  }, []);
+  }, [router]);
 
   const selectedHistory = useMemo(
     () => histories.find((history) => history.id === selectedHistoryId) || null,
     [histories, selectedHistoryId],
-  );
-
-  const orderedSessions = useMemo(
-    () =>
-      formData.sessions
-        .map((session, index) => ({ session, index }))
-        .sort((left, right) => {
-          const difference = getSessionTimestamp(right.session.date) - getSessionTimestamp(left.session.date);
-
-          if (difference !== 0) {
-            return difference;
-          }
-
-          return right.index - left.index;
-        }),
-    [formData.sessions],
   );
 
   const updatePatientField = (field: keyof PatientProfile, value: string | number | string[]) => {
@@ -199,43 +158,10 @@ export default function ClinicalHistoryPage() {
     }));
   };
 
-  const updateSessionField = (
-    index: number,
-    field: keyof MedicalSession,
-    value: string,
-  ) => {
-    setFormData((current) => ({
-      ...current,
-      sessions: current.sessions.map((session, sessionIndex) =>
-        sessionIndex === index
-          ? {
-              ...session,
-              [field]: value,
-            }
-          : session,
-      ),
-    }));
-  };
-
-  const addSession = () => {
-    setFormData((current) => ({
-      ...current,
-      sessions: [...current.sessions, createEmptySession()],
-    }));
-    setIsSessionsOpen(true);
-  };
-
-  const removeSession = (index: number) => {
-    setFormData((current) => ({
-      ...current,
-      sessions: current.sessions.filter((_, sessionIndex) => sessionIndex !== index),
-    }));
-  };
 
   const handleHistorySelect = (history: ClinicalHistory) => {
     setSelectedHistoryId(history.id || null);
     setFormData(history);
-    setIsSessionsOpen(history.sessions.length > 0);
     setFeedback('');
     setError('');
   };
@@ -243,7 +169,6 @@ export default function ClinicalHistoryPage() {
   const handleCreateNew = () => {
     setSelectedHistoryId(null);
     setFormData(createEmptyHistory());
-    setIsSessionsOpen(false);
     setFeedback('');
     setError('');
   };
@@ -374,8 +299,8 @@ export default function ClinicalHistoryPage() {
             <h1 className="page-title">Historia clinica</h1>
             <p className={`page-subtitle ${styles.headerCopy}`}>
               Captura los campos base del requerimiento: anamnesis, antecedentes,
-              habitos, desarrollo dental y adjuntos del paciente. Las sesiones medicas
-              se agregan solo si el caso las requiere.
+              habitos, desarrollo dental y adjuntos del paciente. La gestión de
+              sesiones medicas se realiza en su modulo independiente.
             </p>
           </div>
 
@@ -421,11 +346,7 @@ export default function ClinicalHistoryPage() {
                   <strong>
                     {history.patient.firstName} {history.patient.lastName}
                   </strong>
-                  <small>
-                    {history.sessions.length > 0
-                      ? `${history.sessions.length} sesion${history.sessions.length === 1 ? '' : 'es'} registrada${history.sessions.length === 1 ? '' : 's'}`
-                      : 'Sin sesiones medicas'}
-                  </small>
+                  <small>{history.patient.documentId}</small>
                 </button>
               ))}
 
@@ -707,108 +628,6 @@ export default function ClinicalHistoryPage() {
                   </div>
                 </section>
 
-                <section className={styles.sectionCard}>
-                  <div className={styles.sectionAccordionHeader}>
-                    <div>
-                      <h3>Sesiones medicas</h3>
-                      <p className={styles.sectionHint}>
-                        Puedes dejar la historia clinica sin sesiones y agregarlas mas adelante.
-                        La mas reciente se muestra primero.
-                      </p>
-                    </div>
-
-                    <div className={styles.sectionAccordionActions}>
-                      <button className={styles.secondaryButton} onClick={addSession} type="button">
-                        Agregar sesion
-                      </button>
-                      <button
-                        className={styles.toggleButton}
-                        onClick={() => setIsSessionsOpen((current) => !current)}
-                        type="button"
-                      >
-                        {isSessionsOpen ? 'Ocultar' : 'Mostrar'} sesiones
-                      </button>
-                    </div>
-                  </div>
-
-                  {isSessionsOpen ? (
-                    formData.sessions.length > 0 ? (
-                      <div className={styles.sessionList}>
-                        {orderedSessions.map(({ session, index }, renderIndex) => (
-                          <article key={`${session.date}-${index}`} className={styles.sessionCard}>
-                            <div className={styles.sessionCardHeader}>
-                              <div className={styles.sessionCardTitle}>
-                                <strong>Sesion {renderIndex + 1}</strong>
-                                {renderIndex === 0 ? (
-                                  <span className={styles.sessionBadge}>Mas reciente</span>
-                                ) : null}
-                              </div>
-                              <button
-                                className={styles.removeButton}
-                                onClick={() => removeSession(index)}
-                                type="button"
-                              >
-                                Eliminar
-                              </button>
-                            </div>
-
-                            <div className={styles.gridTwo}>
-                              <div>
-                                <label htmlFor={`session-date-${index}`}>Fecha</label>
-                                <input
-                                  id={`session-date-${index}`}
-                                  type="date"
-                                  value={session.date}
-                                  onChange={(event) => updateSessionField(index, 'date', event.target.value)}
-                                />
-                              </div>
-                              <div>
-                                <label htmlFor={`session-doctor-${index}`}>Doctor responsable</label>
-                                <input
-                                  id={`session-doctor-${index}`}
-                                  value={session.doctorResponsible}
-                                  onChange={(event) =>
-                                    updateSessionField(index, 'doctorResponsible', event.target.value)
-                                  }
-                                />
-                              </div>
-                              <div className={styles.fullWidth}>
-                                <label htmlFor={`session-reason-${index}`}>Motivo de consulta</label>
-                                <input
-                                  id={`session-reason-${index}`}
-                                  value={session.consultationReason}
-                                  onChange={(event) =>
-                                    updateSessionField(index, 'consultationReason', event.target.value)
-                                  }
-                                />
-                              </div>
-                              <div className={styles.fullWidth}>
-                                <label htmlFor={`session-diagnosis-${index}`}>Diagnostico</label>
-                                <textarea
-                                  id={`session-diagnosis-${index}`}
-                                  value={session.diagnosis}
-                                  onChange={(event) => updateSessionField(index, 'diagnosis', event.target.value)}
-                                />
-                              </div>
-                              <div className={styles.fullWidth}>
-                                <label htmlFor={`session-plan-${index}`}>Plan</label>
-                                <textarea
-                                  id={`session-plan-${index}`}
-                                  value={session.treatmentPlan}
-                                  onChange={(event) => updateSessionField(index, 'treatmentPlan', event.target.value)}
-                                />
-                              </div>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className={styles.emptyStateInline}>
-                        Todavia no hay sesiones medicas para este paciente.
-                      </p>
-                    )
-                  ) : null}
-                </section>
 
                 <section className={styles.sectionCard}>
                   <h3>Adjuntos y evidencia</h3>

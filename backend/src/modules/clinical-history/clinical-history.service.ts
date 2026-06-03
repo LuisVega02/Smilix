@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ClinicalHistoryStatus } from '@prisma/client';
+import { BudgetStatus, ClinicalHistoryStatus } from '@prisma/client';
 import { CreateClinicalHistoryDto } from './dto/create-clinical-history.dto';
 import { UpdateClinicalHistoryDto } from './dto/update-clinical-history.dto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -17,6 +17,10 @@ export class ClinicalHistoryService {
       include: {
         sessions: {
           orderBy: { date: 'desc' },
+          include: {
+            odontogram: true,
+            budgets: true,
+          },
         },
       },
       orderBy: { updatedAt: 'desc' },
@@ -31,6 +35,10 @@ export class ClinicalHistoryService {
       include: {
         sessions: {
           orderBy: { date: 'desc' },
+          include: {
+            odontogram: true,
+            budgets: true,
+          },
         },
       },
     });
@@ -60,6 +68,10 @@ export class ClinicalHistoryService {
       include: {
         sessions: {
           orderBy: { date: 'desc' },
+          include: {
+            odontogram: true,
+            budgets: true,
+          },
         },
       },
     });
@@ -111,6 +123,10 @@ export class ClinicalHistoryService {
       include: {
         sessions: {
           orderBy: { date: 'desc' },
+          include: {
+            odontogram: true,
+            budgets: true,
+          },
         },
       },
     });
@@ -198,8 +214,28 @@ export class ClinicalHistoryService {
       date: new Date(session.date),
       doctorResponsible: session.doctorResponsible,
       consultationReason: session.consultationReason,
+      anamnesis: session.anamnesis || '',
+      medicalHistory: session.medicalHistory || '',
       diagnosis: session.diagnosis,
       treatmentPlan: session.treatmentPlan,
+      odontogram: session.odontogram
+        ? {
+            create: {
+              data: session.odontogram.data,
+              imageUrls: session.odontogram.imageUrls || [],
+            },
+          }
+        : undefined,
+      budgets: session.budgets?.length
+        ? {
+            create: session.budgets.map((budget) => ({
+              title: budget.title,
+              description: budget.description,
+              totalCost: budget.totalCost,
+              status: this.mapBudgetStatus(budget.status),
+            })),
+          }
+        : undefined,
     };
   }
 
@@ -223,6 +259,17 @@ export class ClinicalHistoryService {
       default:
         return 'draft';
     }
+  }
+
+  private mapBudgetStatus(status?: string) {
+    if (!status) {
+      return BudgetStatus.PENDING;
+    }
+
+    const normalized = status.toUpperCase();
+    if (normalized === BudgetStatus.APPROVED) return BudgetStatus.APPROVED;
+    if (normalized === BudgetStatus.REJECTED) return BudgetStatus.REJECTED;
+    return BudgetStatus.PENDING;
   }
 
   private mapClinicalHistory(history: any) {
@@ -266,8 +313,23 @@ export class ClinicalHistoryService {
         date: session.date.toISOString().slice(0, 10),
         doctorResponsible: session.doctorResponsible,
         consultationReason: session.consultationReason,
+        anamnesis: session.anamnesis,
+        medicalHistory: session.medicalHistory,
         diagnosis: session.diagnosis,
         treatmentPlan: session.treatmentPlan,
+        odontogram: session.odontogram
+          ? {
+              data: session.odontogram.data,
+              imageUrls: session.odontogram.imageUrls || [],
+            }
+          : null,
+        budgets: (session.budgets || []).map((budget: any) => ({
+          id: budget.id,
+          title: budget.title,
+          description: budget.description,
+          totalCost: Number(budget.totalCost),
+          status: budget.status.toLowerCase(),
+        })),
       })),
       status: this.mapStatusFromPrisma(history.status),
       createdAt: history.createdAt.toISOString(),

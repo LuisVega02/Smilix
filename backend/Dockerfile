@@ -17,6 +17,8 @@ RUN pnpm install
 COPY . .
 
 # Construir la aplicación
+RUN npx prisma generate
+
 RUN pnpm run build
 
 # Stage 2: Production

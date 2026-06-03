@@ -88,12 +88,48 @@ model MedicalSession {
   date               DateTime
   doctorResponsible  String
   consultationReason String          @db.Text
+  anamnesis          String          @db.Text @default("")
+  medicalHistory     String          @db.Text @default("")
   diagnosis          String          @db.Text
   treatmentPlan      String          @db.Text
+  odontogram         Odontogram?
+  budgets            MedicalBudget[]
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   @@map("medical_sessions")
+}
+
+model Odontogram {
+  id               Int            @id @default(autoincrement())
+  medicalSession   MedicalSession @relation(fields: [medicalSessionId], references: [id], onDelete: Cascade)
+  medicalSessionId Int            @unique
+  data             String         @db.Text
+  imageUrls        String[]       @default([])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("odontograms")
+}
+
+model MedicalBudget {
+  id               Int            @id @default(autoincrement())
+  medicalSessionId Int
+  medicalSession   MedicalSession @relation(fields: [medicalSessionId], references: [id], onDelete: Cascade)
+  title            String
+  description      String         @db.Text
+  totalCost        Decimal        @default(0)
+  status           BudgetStatus   @default(PENDING)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("medical_budgets")
+}
+
+enum BudgetStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum ClinicalHistoryStatus {

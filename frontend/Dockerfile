@@ -19,6 +19,10 @@ COPY . .
 # Construir la aplicación
 RUN pnpm run build
 
+# Asegurar que los chunks estén accesibles desde el directorio de servidor
+# Algunos runtimes buscan archivos como `./496.js` junto a `webpack-runtime.js`.
+RUN if [ -d .next/server/chunks ]; then cp -a .next/server/chunks/* .next/server/ || true; fi
+
 # Stage 2: Production
 FROM node:22-alpine
 
