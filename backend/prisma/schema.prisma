@@ -149,10 +149,11 @@ model Appointment {
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   
   // Datos de cita
-  startTime  DateTime
-  endTime    DateTime
-  status     AppointmentStatus @default(SCHEDULED)
-  notes      String?
+  doctorResponsible String
+  startTime         DateTime
+  endTime           DateTime
+  status            AppointmentStatus @default(SCHEDULED)
+  notes             String?
   
   // Relación con tratamiento
   treatmentId Int?

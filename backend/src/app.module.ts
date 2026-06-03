@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClinicalHistoryModule } from './modules/clinical-history/clinical-history.module';
 import { MedicalSessionsModule } from './modules/medical-sessions/medical-sessions.module';
+import { AppointmentsModule } from './modules/appointments/appointments.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -19,7 +20,7 @@ import { PrismaModule } from './prisma/prisma.module';
    * 2. Crear: nuevoModulo.module.ts
    * 3. Importar aquí: imports: [NuevoModulo]
    */
-  imports: [PrismaModule, AuthModule, ClinicalHistoryModule, MedicalSessionsModule],
+  imports: [PrismaModule, AuthModule, ClinicalHistoryModule, MedicalSessionsModule, AppointmentsModule],
 
   /**
    * CONTROLLERS: Controladores globales
