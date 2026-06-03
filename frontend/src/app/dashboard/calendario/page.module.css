@@ -1,0 +1,309 @@
+.pageShell {
+  padding-top: 1rem;
+}
+
+.hero {
+  display: grid;
+  gap: 1rem;
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.65rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(234, 240, 255, 0.95);
+  color: var(--primary-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.heroHeader {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.heroHeader h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+}
+
+.heroCopy {
+  margin-top: 0.85rem;
+  max-width: 68ch;
+  color: var(--text-soft);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.calendarShell {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.4rem;
+}
+
+.calendarControls {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.calendarControls strong {
+  font-size: 1rem;
+  color: var(--primary-strong);
+}
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.dayCard {
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 245, 255, 0.88));
+  border: 1px solid transparent;
+  padding: 1rem;
+  min-height: 128px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dayCard:hover {
+  transform: translateY(-1px);
+}
+
+.selected {
+  border-color: var(--primary);
+  box-shadow: 0 24px 40px rgba(65, 93, 199, 0.12);
+}
+
+.dayLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.dayLabel span {
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+
+.dayName {
+  font-weight: 700;
+}
+
+.dayDate {
+  font-size: 0.95rem;
+  margin-top: 0.45rem;
+}
+
+.appointmentSummary {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+
+.appointmentCount {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.statusLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.statusAgendado { background: #3b82f6; }
+.statusConfirmado { background: #10b981; }
+.statusFinalizada { background: #6b7280; }
+.statusCancelada { background: #ef4444; }
+
+.dayNoteSection {
+  display: grid;
+  grid-template-columns: 1.2fr 0.85fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.notePanel,
+.formPanel {
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 246, 255, 0.9));
+  border: 1px solid rgba(65, 93, 199, 0.08);
+  padding: 1.2rem;
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.panelHeader h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.panelContent {
+  display: grid;
+  gap: 1rem;
+}
+
+.appointmentCard {
+  padding: 1rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(65, 93, 199, 0.08);
+}
+
+.appointmentCardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.appointmentCardHeader strong {
+  font-size: 0.95rem;
+}
+
+.appointmentMeta {
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.noteItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.fieldGroup {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.fieldGroup label {
+  display: block;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.fieldGroup input,
+.fieldGroup select,
+.fieldGroup textarea {
+  width: 100%;
+  border: 1px solid rgba(65, 93, 199, 0.12);
+  border-radius: 18px;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  color: var(--text-strong);
+  font-size: 0.95rem;
+}
+
+.fieldGroup textarea {
+  min-height: 108px;
+  resize: vertical;
+}
+
+.formActions {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.primaryButton,
+.secondaryButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1.2rem;
+  font-weight: 800;
+}
+
+.primaryButton {
+  background: var(--primary);
+  color: #fcfdff;
+}
+
+.secondaryButton {
+  background: rgba(232, 239, 255, 0.92);
+  color: var(--primary-strong);
+}
+
+.dangerButton {
+  background: #f87171;
+  color: #fff;
+}
+
+.errorBox {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: rgba(210, 80, 106, 0.1);
+  color: #9e2d53;
+}
+
+.feedbackBox {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+.emptyState {
+  color: var(--text-soft);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 1024px) {
+  .calendarGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dayNoteSection {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .calendarGrid {
+    grid-template-columns: 1fr;
+  }
+}

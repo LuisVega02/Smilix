@@ -62,6 +62,14 @@ const modules: AppModuleCard[] = [
     accent: 'ink',
   },
   {
+    title: 'Calendario de citas',
+    description: 'Vista semanal de agenda con estados y notas diarias.',
+    tag: 'Implementado',
+    implemented: true,
+    href: '/dashboard/calendario',
+    accent: 'primary',
+  },
+  {
     title: 'Mensajes WhatsApp',
     description: 'Recordatorios, confirmaciones y automatizaciones para el paciente.',
     tag: 'En desarrollo',

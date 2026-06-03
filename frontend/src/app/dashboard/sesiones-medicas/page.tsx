@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/app/components/ProtectedRoute';
 import apiClient from '@/app/utils/api';
-import styles from '../historia-clinica/page.module.css';
+import styles from './page.module.css';
 
 interface MedicalSession {
   id?: number;
