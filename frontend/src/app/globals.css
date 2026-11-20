@@ -1,21 +1,50 @@
+/* ============================================================
+   Smilix Dental OS — tema oscuro global.
+   Los tokens viven en :root para que login, registro, dashboard
+   y las páginas de módulos compartan la misma paleta.
+   Las variables --dos-* del dashboard.module.css son alias
+   locales y siguen funcionando sin cambios.
+   ============================================================ */
+
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+
   --font-body: 'Manrope', sans-serif;
   --font-heading: 'DM Serif Display', serif;
-  --bg: #eef4ff;
-  --bg-soft: #dfeafe;
-  --surface: rgba(255, 255, 255, 0.9);
-  --surface-strong: #ffffff;
-  --border: rgba(65, 93, 199, 0.14);
-  --text: #17305f;
-  --text-soft: #5d74a7;
-  --primary: #415dc7;
-  --primary-strong: #2f49a6;
-  --primary-soft: rgba(65, 93, 199, 0.12);
-  --primary-pale: #eaf0ff;
-  --accent: #7db7ff;
-  --warning-soft: rgba(82, 133, 235, 0.14);
-  --shadow: 0 24px 80px rgba(46, 77, 160, 0.14);
+
+  /* Superficies */
+  --bg: #070b14;
+  --bg-soft: #0b1322;
+  --surface: rgba(15, 22, 38, 0.82);
+  --surface-strong: #0f1626;
+
+  /* Bordes y separadores */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(148, 170, 210, 0.3);
+
+  /* Texto */
+  --text: #e6edf7;
+  --text-strong: #f3f8ff;
+  --text-soft: #8b9bb4;
+
+  /* Acento teal (marca Smilix) */
+  --primary: #2dd4bf;
+  --primary-strong: #5eead4;
+  --primary-soft: rgba(45, 212, 191, 0.12);
+  --primary-pale: rgba(45, 212, 191, 0.18);
+  --on-primary: #04211d;
+  --accent: #60a5fa;
+
+  /* Estados */
+  --warning-soft: rgba(251, 191, 36, 0.12);
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --danger-text: #fca5a5;
+  --success-soft: rgba(52, 211, 153, 0.12);
+  --success-text: #6ee7b7;
+
+  /* Foco y sombras */
+  --focus: #5eead4;
+  --shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
 }
 
 * {
@@ -32,14 +61,25 @@ body {
   font-family: var(--font-body);
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(125, 183, 255, 0.34), transparent 32%),
-    radial-gradient(circle at top right, rgba(65, 93, 199, 0.18), transparent 26%),
-    linear-gradient(180deg, #f9fbff 0%, var(--bg) 46%, #e6efff 100%);
+    radial-gradient(circle at 12% -8%, rgba(45, 212, 191, 0.16), transparent 42%),
+    radial-gradient(circle at 88% -4%, rgba(96, 165, 250, 0.13), transparent 38%),
+    linear-gradient(180deg, #070b14 0%, #08101f 55%, #060a12 100%);
+  background-color: var(--bg);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.32);
+  color: #f2fffd;
 }
 
 a {
-  color: inherit;
+  color: var(--primary-strong);
   text-decoration: none;
+}
+
+a:hover {
+  color: var(--primary);
 }
 
 button,
@@ -51,18 +91,31 @@ select {
 
 button {
   cursor: pointer;
+  color: inherit;
+}
+
+:is(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
 }
 
 input,
 textarea,
 select {
   width: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 14px;
   padding: 0.9rem 1rem;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(11, 18, 32, 0.72);
   color: var(--text);
+  caret-color: var(--primary);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-soft);
+  opacity: 0.85;
 }
 
 textarea {
@@ -70,13 +123,47 @@ textarea {
   min-height: 120px;
 }
 
+select option {
+  background: #0f1626;
+  color: var(--text);
+}
+
+input[type='file'] {
+  padding: 0.7rem 0.85rem;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+input[type='file']::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: rgba(148, 170, 210, 0.12);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+input[type='file']::file-selector-button:hover {
+  background: rgba(45, 212, 191, 0.18);
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
 input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: rgba(65, 93, 199, 0.46);
-  box-shadow: 0 0 0 4px rgba(65, 93, 199, 0.14);
-  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(45, 212, 191, 0.55);
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.16);
+  background: rgba(18, 28, 48, 0.92);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 label {
@@ -87,6 +174,10 @@ label {
   color: var(--text);
 }
 
+/* ------------------------------------------------------------
+   Layout compartido
+   ------------------------------------------------------------ */
+
 .app-shell {
   width: min(1240px, calc(100% - 2rem));
   margin: 0 auto;
@@ -96,12 +187,14 @@ label {
 .glass-panel {
   background: var(--surface);
   backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
 
 .page-title {
   margin: 0;
+  color: var(--text-strong);
   font-family: var(--font-heading);
   font-size: clamp(2.2rem, 4vw, 4.2rem);
   line-height: 0.95;
@@ -123,5 +216,24 @@ label {
 
   .page-title {
     line-height: 1.02;
+  }
+}
+
+/* ------------------------------------------------------------
+   Accesibilidad: movimiento reducido
+   ------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

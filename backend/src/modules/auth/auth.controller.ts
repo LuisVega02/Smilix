@@ -20,6 +20,7 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
+import { Public } from '../../common/decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -72,6 +73,7 @@ export class AuthController {
    * 
    * @HttpCode(HttpStatus.OK) = respuesta 200 (no 201)
    */
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
@@ -104,11 +106,12 @@ export class AuthController {
    * 
    * @HttpCode(HttpStatus.CREATED) = respuesta 201
    */
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() registerDto: RegisterDto) {
     try {
-      return this.authService.register(registerDto);
+      return await this.authService.register(registerDto);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error en el registro';
@@ -139,6 +142,7 @@ export class AuthController {
    * 2. Mantener sesión activa sin pedir login nuevamente
    * 3. Refrescar token antes de que expire
    */
+  @Public()
   @Post('verify')
   async verify(@Body() body: { token: string }) {
     if (!body.token) {

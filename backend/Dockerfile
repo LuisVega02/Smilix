@@ -34,11 +34,13 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
 
-# Copiar archivos de prisma
+# Copiar archivos de prisma y su configuración CLI
 COPY prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # Exponer puerto
 EXPOSE 3001
 
-# Comando de inicio
-CMD ["node", "dist/main.js"]
+# Aplicar migraciones pendientes y arrancar la API
+CMD ["sh", "-lc", "node_modules/.bin/prisma migrate deploy --config prisma.config.ts && node dist/main.js"]

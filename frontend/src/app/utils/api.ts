@@ -19,11 +19,8 @@
  * const updated = await apiClient.put('/users/1', { name: 'New Name' });
  */
 
-const runtimeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-  .process?.env;
-
-// URL base del API (cambiar según ambiente)
-const API_BASE_URL = runtimeEnv?.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// URL base del API (se inyecta en build-time vía NEXT_PUBLIC_API_URL)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // ============================================================
 // TIPOS
@@ -69,6 +66,23 @@ function getHeaders(options?: ApiOptions): Record<string, string> {
 }
 
 /**
+ * Si el backend respondió 401, la sesión ya no es válida:
+ * limpia las credenciales guardadas y manda al login (solo en cliente).
+ */
+function handleUnauthorized(response: Response): void {
+  if (response.status !== 401) return;
+  if (typeof window === 'undefined') return;
+
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('user');
+
+  // Evita recargar en bucle si ya estamos en el login (p. ej. credenciales incorrectas).
+  if (window.location.pathname !== '/login') {
+    window.location.replace('/login');
+  }
+}
+
+/**
  * Manejar errores de forma consistente
  */
 function handleError(error: any): never {
@@ -91,6 +105,8 @@ async function get<T>(endpoint: string): Promise<T> {
       method: 'GET',
       headers: getHeaders(),
     });
+
+    handleUnauthorized(response);
 
     const data = await response.json();
 
@@ -115,6 +131,8 @@ async function post<T>(endpoint: string, body: any): Promise<T> {
       body: JSON.stringify(body),
     });
 
+    handleUnauthorized(response);
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -137,6 +155,8 @@ async function put<T>(endpoint: string, body: any): Promise<T> {
       headers: getHeaders(),
       body: JSON.stringify(body),
     });
+
+    handleUnauthorized(response);
 
     const data = await response.json();
 
@@ -161,6 +181,8 @@ async function patch<T>(endpoint: string, body: any): Promise<T> {
       body: JSON.stringify(body),
     });
 
+    handleUnauthorized(response);
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -182,6 +204,8 @@ async function del<T>(endpoint: string): Promise<T> {
       method: 'DELETE',
       headers: getHeaders(),
     });
+
+    handleUnauthorized(response);
 
     const data = await response.json();
 
@@ -205,6 +229,8 @@ async function postFormData<T>(endpoint: string, body: FormData): Promise<T> {
       headers,
       body,
     });
+
+    handleUnauthorized(response);
 
     const data = await response.json();
 
