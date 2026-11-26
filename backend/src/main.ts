@@ -1,4 +1,5 @@
 import * as express from 'express';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { join } from 'path';
 import { AppModule } from './app.module';
@@ -6,6 +7,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
+  // transform: true permite convertir payloads a los tipos de los DTO
+  // (ej. strings numéricos -> number). Sin whitelist para no descartar
+  // payloads anidados de odontograma/presupuestos.
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http://127.0.0.1:3000')
     .split(',')

@@ -391,7 +391,7 @@ export default function CalendarPage() {
                   <h2>Citas del día</h2>
                   <p className={styles.emptyState}>{selectedDayLabel}</p>
                 </div>
-                <span className={styles.statusPill} style={{ background: '#1d4ed8' }}>
+                <span className={`${styles.statusPill} ${styles.statusCounter}`}>
                   {selectedDayAppointments.length} programada{selectedDayAppointments.length === 1 ? '' : 's'}
                 </span>
               </div>

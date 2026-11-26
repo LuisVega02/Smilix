@@ -1,463 +1,307 @@
-// Guía de Autenticación - Clínica Dental
+# Guía de autenticación — Smilix
 
-# 🔐 SISTEMA DE AUTENTICACIÓN - GUÍA COMPLETA
+Estado real de la autenticación implementada en el repositorio (verificado contra el código). Sustituye a la guía anterior, que describía usuarios demo en memoria y contraseñas en texto plano.
 
-## 📋 TABLA DE CONTENIDOS
-1. [Arquitectura General](#arquitectura)
-2. [Flujo de Login](#flujo-login)
-3. [Flujo de Registro](#flujo-registro)
-4. [Estructura del Código](#estructura)
-5. [Cómo Replicar en Otros Módulos](#replicar)
-6. [URLs y Endpoints](#urls)
+## 1. Resumen
 
----
+- La autenticación se valida contra la tabla `users` de PostgreSQL mediante Prisma.
+- Las contraseñas se almacenan como hash bcryptjs (coste 10) y se comparan con `bcrypt.compare`.
+- El backend emite un JWT con payload `{ sub, email, role }` y expiración de 7 días (`JWT_EXPIRATION`, por defecto `7d`).
+- `JwtAuthGuard` es un guard **global** (`APP_GUARD`): toda ruta exige `Authorization: Bearer <token>` salvo las marcadas con `@Public()`.
+- `ValidationPipe` global (`transform: true`) valida todos los DTOs.
+- `JWT_SECRET` es obligatorio: sin él, el proceso no arranca.
+- Los roles se guardan como texto (`admin`, `doctor`, `user`), pero **no hay autorización por rol** todavía.
 
-## 🏗️ ARQUITECTURA
+## 2. Modelo `User`
 
-### Backend (NestJS)
-```
-/backend/src/modules/auth/
-├── auth.module.ts          ← Configuración del módulo
-├── auth.controller.ts       ← Manejo de rutas HTTP
-├── auth.service.ts          ← Lógica de negocio
-│
-└── dto/
-    ├── login.dto.ts         ← Validación de login
-    └── register.dto.ts      ← Validación de registro
-```
+Definido en `backend/prisma/schema.prisma` y mapeado a la tabla `users`:
 
-### Frontend (Next.js)
-```
-/frontend/src/app/
-├── page.tsx                 ← Redirección inicial
-├── login/page.tsx           ← Página de login
-├── register/page.tsx        ← Página de registro
-├── dashboard/page.tsx       ← Página protegida
-│
-├── components/
-│   └── ProtectedRoute.tsx   ← Guard para rutas
-│
-└── utils/
-    └── api.ts               ← Cliente HTTP
-```
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| `id` | `Int` | Autoincremental |
+| `email` | `String` | Único |
+| `password` | `String` | Hash bcrypt; nunca texto plano |
+| `fullName` | `String` | Nombre completo |
+| `role` | `String` | Por defecto `"user"`; valores usados: `admin`, `doctor`, `user` |
+| `isActive` | `Boolean` | Por defecto `true`; un usuario inactivo no puede iniciar sesión |
+| `createdAt` / `updatedAt` | `DateTime` | Timestamps |
 
----
+El seed (`backend/prisma/seed.ts`) crea o actualiza por email:
 
-## 🔄 FLUJO DE LOGIN
+- `admin@clinica.com` / `admin123` → rol `admin`
+- `doctor@clinica.com` / `doctor123` → rol `doctor`
 
-### 1️⃣ Usuario llega a http://localhost:3000
-
-```
-Home Component (page.tsx)
-  ↓
-  ¿Existe token en localStorage?
-  ├─ SÍ → Ver /dashboard
-  └─ NO → Ver /login
-```
-
-### 2️⃣ Usuario ingresa credenciales en /login
-
-1. Usuario completa email y contraseña
-2. Click en "Ingresar"
-3. Frontend valida:
-   - Email no vacío
-   - Contraseña no vacía
-   - Email tiene formato válido
-
-### 3️⃣ Frontend envía petición al backend
-
-```javascript
-POST http://localhost:3001/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "admin@clinica.com",
-  "password": "admin123"
-}
-```
-
-### 4️⃣ Backend verifica credenciales
-
-```
-Backend recibe petición
-  ↓
-Busca usuario en BD (o en DEMO_USERS)
-  ↓
-¿Credenciales correctas?
-  ├─ SÍ → Generar JWT token
-  │        Devolver: { access_token, user }
-  │
-  └─ NO → Devolver error 401
-           "Credenciales inválidas"
-```
-
-### 5️⃣ Frontend recibe respuesta
-
-**Caso exitoso (200 OK):**
-```javascript
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": "1",
-    "email": "admin@clinica.com",
-    "fullName": "Admin User",
-    "role": "admin"
-  }
-}
-```
-
-**Caso error (401 Unauthorized):**
-```javascript
-{
-  "statusCode": 401,
-  "message": "Credenciales inválidas"
-}
-```
-
-### 6️⃣ Frontend guarda datos
-
-Si login exitoso:
-```javascript
-localStorage.setItem('access_token', data.access_token);
-localStorage.setItem('user', JSON.stringify(data.user));
-
-// Redirigir
-router.push('/dashboard');
-```
-
-Si login fallido:
-```javascript
-mostrar error en UI
-limpiar contraseña
-permitir reintentar
-```
-
----
-
-## 📝 FLUJO DE REGISTRO
-
-```
-Usuario en /register
-  ↓
-Completa: nombre, email, password, confirmar password
-  ↓
-Frontend valida:
-  - Email válido
-  - Contraseña >= 6 caracteres
-  - Passwords coinciden
-  ↓
-POST /api/auth/register
-  ↓
-Backend crea usuario en BD
-  ↓
-Backend autentica automáticamente
-  ↓
-Devuelve: { access_token, user }
-  ↓
-Frontend guarda token y redirige a dashboard
-```
-
----
-
-## 📂 ESTRUCTURA DEL CÓDIGO
-
-### Backend: auth.controller.ts
-
-```typescript
-// 3 rutas principales
-
-POST /api/auth/login
-  Input: { email, password }
-  Output: { access_token, user }
-
-POST /api/auth/register
-  Input: { email, password, fullName }
-  Output: { access_token, user }
-
-POST /api/auth/verify
-  Input: { token }
-  Output: { valid: boolean, payload }
-```
-
-### Frontend: login/page.tsx
-
-```typescript
-// Estados
-- email: string
-- password: string
-- error: string
-- isLoading: boolean
-
-// Funciones
-- handleLogin(e): Enviar credenciales
-- handleRegister(): Ir a /register
-
-// Validaciones
-- Email y password no vacíos
-- Email formato válido
-```
-
-### Frontend: dashboard/page.tsx
-
-```typescript
-// Effect al cargar:
-¿Existe token en localStorage?
-  ├─ NO → Redirigir a /login
-  └─ SÍ → Cargar datos del usuario
-
-// Funciones
-- handleLogout(): Limpiar localStorage + redirigir
-```
-
----
-
-## 🔁 CÓMO REPLICAR EN OTROS MÓDULOS
-
-### PASO 1: Crear estructura de carpetas
-
-```bash
-mkdir -p src/modules/pacientes/dto
-mkdir -p src/modules/pacientes/
-
-touch src/modules/pacientes/pacientes.module.ts
-touch src/modules/pacientes/pacientes.controller.ts
-touch src/modules/pacientes/pacientes.service.ts
-touch src/modules/pacientes/dto/create-paciente.dto.ts
-touch src/modules/pacientes/dto/update-paciente.dto.ts
-```
-
-### PASO 2: Copiar patrón de DTOs
-
-**De auth.service.ts, copiar:**
-- Decoradores de validación (@IsEmail, @IsString, etc.)
-- Estructura de DTOs
-- Comentarios explicativos
-
-```typescript
-// ANTERIOR (Auth)
-@IsEmail()
-email: string;
-
-// NUEVO (Pacientes)
-@IsString()
-nombre: string;
-
-@IsEmail()
-email_paciente: string;
-```
-
-### PASO 3: Crear Service con misma estructura
-
-```typescript
-// PATRÓN REPLICADO
-
-export class PacientesService {
-  /**
-   * CRUD básicas
-   */
-  async create(createPacienteDto: CreatePacienteDto) {
-    // Lógica: guardar en BD
-  }
-
-  async findAll() {
-    // Lógica: obtener todos
-  }
-
-  async findOne(id: string) {
-    // Lógica: obtener por ID
-  }
-
-  async update(id: string, updatePacienteDto: UpdatePacienteDto) {
-    // Lógica: actualizar
-  }
-
-  async delete(id: string) {
-    // Lógica: eliminar
-  }
-}
-```
-
-### PASO 4: Crear Controller con misma estructura
-
-```typescript
-// PATRÓN REPLICADO
-
-@Controller('api/pacientes')
-export class PacientesController {
-  constructor(private readonly pacientesService: PacientesService) {}
-
-  @Post()
-  create(@Body() createPacienteDto: CreatePacienteDto) {
-    return this.pacientesService.create(createPacienteDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.pacientesService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.pacientesService.findOne(id);
-  }
-
-  @Put(':id')
-  update(@Param('id') id: string, @Body() updatePacienteDto) {
-    return this.pacientesService.update(id, updatePacienteDto);
-  }
-
-  @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.pacientesService.delete(id);
-  }
-}
-```
-
-### PASO 5: Importar en app.module.ts
-
-```typescript
-import { PacientesModule } from './modules/pacientes/pacientes.module';
-
-@Module({
-  imports: [AuthModule, PacientesModule], // ← Agregado
-})
-export class AppModule {}
-```
-
-### PASO 6: Frontend - Crear página con mismo patrón
-
-```typescript
-// PATRÓN: Login de la guía
-// NUEVO: Página de pacientes
-
-'use client';
-
-import { useState, useEffect } from 'react';
-import { apiClient } from '@/app/utils/api';
-import ProtectedRoute from '@/app/components/ProtectedRoute';
-
-export default function PacientesPage() {
-  const [pacientes, setPacientes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    cargarPacientes();
-  }, []);
-
-  const cargarPacientes = async () => {
-    try {
-      const data = await apiClient.get('/api/pacientes');
-      setPacientes(data);
-    } catch (err) {
-      setError('Error al cargar pacientes');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <ProtectedRoute>
-      {/* Contenido protegido */}
-    </ProtectedRoute>
-  );
-}
-```
-
----
-
-## 🌐 URLs Y ENDPOINTS
+## 3. Estructura del código
 
 ### Backend
 
-| Método | Endpoint | Autenticación | Descripción |
-|--------|----------|---------------|-------------|
-| POST | /api/auth/login | NO | Iniciar sesión |
-| POST | /api/auth/register | NO | Crear cuenta |
-| POST | /api/auth/verify | NO | Validar token |
-| GET | /api/health | NO | Estado del servidor |
+```
+backend/src/
+├── app.module.ts                  # JwtModule global + APP_GUARD (JwtAuthGuard)
+├── app.controller.ts              # GET /api y GET /api/health (@Public)
+├── main.ts                        # prefijo /api + ValidationPipe + CORS
+├── common/
+│   ├── decorators/public.decorator.ts   # @Public() y IS_PUBLIC_KEY
+│   └── guards/jwt-auth.guard.ts         # verificación Bearer
+├── prisma/
+│   ├── prisma.module.ts           # @Global, exporta PrismaService
+│   └── prisma.service.ts          # PrismaClient + PrismaPg
+└── modules/auth/
+    ├── auth.module.ts
+    ├── auth.controller.ts
+    ├── auth.service.ts
+    └── dto/
+        ├── login.dto.ts
+        └── register.dto.ts
+```
 
 ### Frontend
 
-| Ruta | Autenticación | Descripción |
-|------|---------------|-------------|
-| / | NO (redirige) | Home - Redirección |
-| /login | NO | Página de login |
-| /register | NO | Página de registro |
-| /dashboard | **SÍ** | Dashboard privado |
-
-### URLs de Desarrollo
-
 ```
-Frontend:     http://localhost:3000
-Backend API:  http://localhost:3001
-Base de datos: localhost:5432
-pgAdmin:      http://localhost:5050
+frontend/src/app/
+├── page.tsx                       # redirección inicial según sesión
+├── login/page.tsx                 # POST /api/auth/login
+├── register/page.tsx              # POST /api/auth/register
+├── dashboard/                     # rutas protegidas
+├── components/ProtectedRoute.tsx  # valida el token con POST /api/auth/verify
+└── utils/api.ts                   # cliente HTTP que añade el Bearer
 ```
 
-### Credenciales de Prueba
+## 4. Flujo de login
 
 ```
-👨‍💼 ADMIN
-Email:    admin@clinica.com
-Password: admin123
-Rol:      admin
-
-👨‍⚕️ DOCTOR
-Email:    doctor@clinica.com
-Password: doctor123
-Rol:      doctor
+POST /api/auth/login          (público)
+{ "email": "...", "password": "..." }
+        │
+        ▼
+AuthController.login()
+        │  ValidationPipe valida LoginDto (email válido, password ≥ 6)
+        ▼
+AuthService.login()
+        │  1. prisma.user.findUnique({ where: { email } })
+        │  2. Si no existe o !isActive → 401 "Email o contraseña inválidos"
+        │  3. bcrypt.compare(password, user.password)
+        │  4. Si no coincide → 401 (mismo mensaje genérico)
+        │  5. jwtService.sign({ sub, email, role })
+        ▼
+200 OK
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": { "id": 1, "email": "...", "fullName": "...", "role": "admin" }
+}
 ```
 
----
+Notas:
 
-## 🔍 FLUJO COMPLETO (Paso a Paso)
+- El mensaje de error es genérico a propósito: no revela si el email existe.
+- La respuesta no incluye `password`.
+- El login responde `200` (`@HttpCode(HttpStatus.OK)`), no `201`.
+
+El frontend guarda `access_token` y `user` en `localStorage` y redirige a `/dashboard`.
+
+## 5. Flujo de registro
 
 ```
-1. usuario abre http://localhost:3000
-   ↓
-2. Frontend verifica: ¿Existe access_token en localStorage?
-   ├─ NO → Redirige a /login
-   │
-3. Usuario ingresa admin@clinica.com y admin123
-   ├─ Click "Ingresar"
-   │
-4. Frontend valida y envía POST a http://localhost:3001/api/auth/login
-   ├─ Backend busca usuario
-   ├─ Verifica contraseña
-   ├─ Genera JWT token (7 días de validez)
-   │
-5. Backend devuelve:
-   {
-     "access_token": "eyJhbGc...",
-     "user": { "id": "1", "email": "admin@clinica.com", ... }
-   }
-   │
-6. Frontend guarda en localStorage:
-   ├─ access_token (para autenticación futura)
-   ├─ user (para mostrar en UI)
-   │
-7. Frontend redirige a /dashboard
-   │
-8. Dashboard verifica: ¿Existe token?
-   ├─ SÍ → Mostrar dashboard
-   │
-9. Usuario ve bienvenida personalizada
-   │
-10. Cuando usuario hace logout:
-    ├─ Borra access_token de localStorage
-    ├─ Borra user de localStorage
-    ├─ Redirige a /login
-
-SIGUIENTE LOGIN: token ya está en localStorage
-                  ✓ Usuario va directo a /dashboard
+POST /api/auth/register       (público)
+{ "email": "...", "password": "...", "fullName": "..." }
+        │
+        ▼
+RegisterDto: hereda email/password de LoginDto + fullName (≥ 3 caracteres)
+        │
+        ▼
+AuthService.register()
+        │  1. Busca el email; si existe → 400 "Este email ya está registrado"
+        │  2. bcrypt.hash(password, 10)
+        │  3. prisma.user.create({ ..., role: "user" })
+        │  4. Protección adicional contra carrera: error Prisma P2002 → 400
+        │  5. Firma JWT y devuelve { access_token, user }
+        ▼
+201 Created
 ```
 
----
+El registro autentica automáticamente al usuario: devuelve token y datos públicos, igual que el login.
 
-## 🛠️ HERRAMIENTAS ÚTILES
+## 6. Verificación de token
 
-### Pruebas de endpoints (sin frontend)
+`POST /api/auth/verify` es público (recibe el token en el body, no en el header):
+
+```json
+{ "token": "eyJhbGciOiJIUzI1NiIs..." }
+```
+
+- Token válido → `200 { "valid": true, "payload": { "sub": 1, "email": "...", "role": "..." } }`
+- Token inválido o expirado → `200 { "valid": false, "error": "..." }` (no lanza 401)
+
+En el frontend, `ProtectedRoute` llama a este endpoint al montar. Si no hay token o `valid !== true`, limpia `localStorage` y redirige a `/login`. La validación real la hace el backend.
+
+## 7. Guard global y `@Public()`
+
+`AppModule` registra el guard para toda la aplicación:
+
+```typescript
+providers: [
+  { provide: APP_GUARD, useClass: JwtAuthGuard },
+],
+```
+
+`JwtAuthGuard`:
+
+1. Lee el metadata `isPublic` del handler y de la clase (con `Reflector.getAllAndOverride`).
+2. Si `@Public()` está presente, permite la petición sin token.
+3. Si no, exige `Authorization: Bearer <token>`; sin header o con formato incorrecto lanza `401 Token requerido`.
+4. Verifica el token con `jwtService.verifyAsync`; si falla lanza `401 Token inválido`.
+5. Adjunta el payload a `request.user`.
+
+Decorador:
+
+```typescript
+import { Public } from '../../common/decorators/public.decorator';
+
+@Public()
+@Get('health')
+healthCheck() { ... }
+```
+
+`@Public()` puede aplicarse a un método o a un controlador completo.
+
+### Rutas públicas actuales
+
+| Método | Ruta |
+|--------|------|
+| `POST` | `/api/auth/login` |
+| `POST` | `/api/auth/register` |
+| `POST` | `/api/auth/verify` |
+| `GET` | `/api` |
+| `GET` | `/api/health` |
+
+### Rutas protegidas
+
+El resto de endpoints de `appointments`, `clinical-histories`, `medical-sessions`, `treatments` y `payments` requiere JWT. No llevan `@Public()` y no necesitan `@UseGuards(JwtAuthGuard)`: el guard global ya se aplica.
+
+Ejemplo:
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@clinica.com","password":"admin123"}' | jq -r .access_token)
+
+curl http://localhost:3001/api/appointments \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## 8. Validación global
+
+En `main.ts`:
+
+```typescript
+app.setGlobalPrefix('api');
+app.useGlobalPipes(new ValidationPipe({ transform: true }));
+```
+
+- `transform: true` convierte los payloads a los tipos declarados en los DTOs (por ejemplo, strings numéricos a `number`).
+- No se usa `whitelist` para no descartar payloads anidados de odontograma y presupuestos.
+- Los DTOs usan `class-validator`: `@IsEmail`, `@IsString`, `@IsNotEmpty`, `@MinLength`, etc.
+- Un payload inválido devuelve `400 Bad Request` antes de llegar al servicio.
+
+## 9. `JWT_SECRET` obligatorio
+
+`app.module.ts` valida la variable al importar el módulo:
+
+```typescript
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret) {
+  throw new Error('JWT_SECRET no está configurada. El servidor no arrancará sin un secreto JWT seguro.');
+}
+```
+
+No hay valor por defecto en el código. `docker-compose.yml` inyecta `${JWT_SECRET:-your-secret-key-change-in-production}` para desarrollo, pero en producción debe definirse un secreto largo y aleatorio en el entorno.
+
+## 10. Cliente HTTP del frontend
+
+`frontend/src/app/utils/api.ts` centraliza las peticiones:
+
+- Lee `NEXT_PUBLIC_API_URL` (por defecto `http://localhost:3001`).
+- Añade `Content-Type: application/json` y `Authorization: Bearer <token>` si existe `access_token` en `localStorage`.
+- Si el backend responde `401`, elimina `access_token` y `user` y redirige a `/login` (salvo que ya esté en esa página).
+- Expone `get`, `post`, `postFormData`, `put`, `patch`, `delete` y `resolveAssetUrl`.
+
+## 11. Cómo replicar un módulo protegido
+
+Usando como referencia los módulos existentes (por ejemplo `appointments`):
+
+1. **Crear la carpeta y archivos** en `backend/src/modules/<nombre>/`: `<nombre>.module.ts`, `<nombre>.controller.ts`, `<nombre>.service.ts` y `dto/`.
+2. **Service**: inyectar `PrismaService`. No hace falta declararlo en el módulo: `PrismaModule` es `@Global`. Acceder a los modelos directamente (`this.prisma.appointment`, `this.prisma.patient`, ...).
+3. **Controller**: declarar `@Controller('<ruta>')`. **No** añadir `@Public()` salvo que la ruta deba ser abierta. El guard global ya exige JWT.
+4. **DTOs**: usar decoradores de `class-validator`; el `ValidationPipe` global los aplica.
+5. **Registrar el módulo** en `imports` de `app.module.ts`.
+6. **Frontend**: consumir con `apiClient` desde `@/app/utils/api` usando rutas con prefijo `/api` (el cliente añade el token). Envolver la página en `ProtectedRoute` si es una vista privada.
+
+Esqueleto mínimo:
+
+```typescript
+// <nombre>.service.ts
+@Injectable()
+export class PacientesService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  findAll() {
+    return this.prisma.patient.findMany();
+  }
+}
+```
+
+```typescript
+// <nombre>.controller.ts
+@Controller('pacientes')        // queda en /api/pacientes
+export class PacientesController {
+  constructor(private readonly pacientesService: PacientesService) {}
+
+  @Get()                        // protegido por el guard global
+  findAll() {
+    return this.pacientesService.findAll();
+  }
+}
+```
+
+```typescript
+// <nombre>.module.ts
+@Module({
+  controllers: [PacientesController],
+  providers: [PacientesService],
+})
+export class PacientesModule {}
+```
+
+```typescript
+// app.module.ts
+imports: [/* ... */, PacientesModule],
+```
+
+## 12. Estado: hecho y pendiente
+
+**Ya implementado**
+
+- Autenticación real contra la tabla `users` con bcryptjs.
+- Login, registro y verificación de token.
+- `JwtAuthGuard` global vía `APP_GUARD` y decorador `@Public()`.
+- `ValidationPipe` global con DTOs validados.
+- `JWT_SECRET` obligatorio y JWT de 7 días.
+- Seed idempotente de usuarios demo.
+- Cliente HTTP del frontend con Bearer y manejo de 401.
+- `ProtectedRoute` que valida el token contra `/api/auth/verify`.
+- Tests unitarios base (Jest) y workflow de CI.
+
+**Pendiente**
+
+- Refresh tokens y rotación de sesión.
+- Roles como enum en `User` y guard de autorización por rol (`@Roles`).
+- Swagger/OpenAPI (no instalado; no existe `/api/docs`).
+- Tests e2e de autenticación y de rutas protegidas.
+- Observabilidad: `LOG_LEVEL` real, healthchecks de las aplicaciones y logs estructurados.
+- Manejo proactivo de la expiración del token en el frontend (hoy se resuelve al recibir 401 o al validar en `ProtectedRoute`).
+
+## 13. Pruebas rápidas con curl
 
 ```bash
 # Login
@@ -468,69 +312,31 @@ curl -X POST http://localhost:3001/api/auth/login \
 # Registro
 curl -X POST http://localhost:3001/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"new@clinica.com","password":"pass123","fullName":"Dr. Nuevo"}'
+  -d '{"email":"nuevo@clinica.com","password":"pass123","fullName":"Dr. Nuevo"}'
 
 # Verificar token
 curl -X POST http://localhost:3001/api/auth/verify \
   -H "Content-Type: application/json" \
-  -d '{"token":"eyJhbGc..."}'
+  -d '{"token":"eyJhbGciOiJIUzI1NiIs..."}'
+
+# Health (GET, público)
+curl http://localhost:3001/api/health
+
+# Ruta protegida sin token → 401
+curl http://localhost:3001/api/appointments
 ```
 
-### Ver localStorage en navegador
+## 14. URLs de desarrollo
 
-```javascript
-// F12 → Console
-
-// Ver token
-localStorage.getItem('access_token')
-
-// Ver usuario
-JSON.parse(localStorage.getItem('user'))
-
-// Limpiar todo
-localStorage.clear()
+```
+Frontend:      http://localhost:3000
+API:           http://localhost:3001/api
+Health:        http://localhost:3001/api/health
+PostgreSQL:    localhost:5432
+pgAdmin:       http://localhost:5050
 ```
 
 ---
 
-## 📝 NOTAS IMPORTANTES
-
-✅ **Ya está hecho:**
-- Backend auth module completamente funcional
-- DTOs con validación automática
-- JWT tokens con 7 días de expiración
-- Frontend login y registro
-- Dashboard protegido
-- API client centralizado
-- ProtectedRoute component
-
-⚠️ **Todavía por hacer:**
-- Password hashing con bcrypt (en producción)
-- Guards de rutas en backend (@UseGuards)
-- Refresh tokens
-- Tests unitarios
-- Swagger documentation
-- Validar token en cada petición protegida
-- Manejo de expiración de token en frontend
-
----
-
-## 🎓 PATRÓN DE REPLICACIÓN
-
-**Para crear CUALQUIER nuevo módulo:**
-
-1. Copiar estructura de carpetas de `auth/`
-2. Actualizar nombres (auth → pacientes)
-3. Copiar comentarios (enseña el patrón)
-4. Adaptar lógica al nuevo módulo
-5. Importar en app.module.ts
-6. Crear página en frontend con ProtectedRoute
-7. Usar apiClient para comunicarse
-
-¡Cada módulo sigue la misma estructura! 🎯
-
----
-
-**Última actualización:** 2026-05-09
-**Versión:** 2.0 Beta
-**Estado:** 🟢 Funcional
+**Última actualización:** 2026-11-19
+**Versión:** 2.0

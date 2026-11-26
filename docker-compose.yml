@@ -88,6 +88,10 @@ services:
 
   frontend_prod:
     container_name: clinic_frontend_prod
+    # Perfil "prod": no arranca con `docker compose up -d` (comparte el puerto 3000
+    # con `frontend` dev y provocaría "port already allocated").
+    # Uso: docker compose --profile prod up -d frontend_prod
+    profiles: ["prod"]
     build:
       context: ./frontend
       dockerfile: Dockerfile

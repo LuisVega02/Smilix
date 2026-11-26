@@ -16,6 +16,10 @@ RUN pnpm install
 # Copiar código fuente
 COPY . .
 
+# URL pública del backend (se inyecta en el bundle en build-time)
+ARG NEXT_PUBLIC_API_URL=http://localhost:3001
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Construir la aplicación
 RUN pnpm run build
 
@@ -40,5 +44,5 @@ COPY --from=builder /app/package.json ./
 # Exponer puerto
 EXPOSE 3000
 
-# Comando de inicio
-CMD ["pnpm", "start"]
+# Comando de inicio (next start sirve el build precompilado)
+CMD ["npx", "next", "start"]

@@ -1,5 +1,9 @@
+/* Calendario de citas — tema oscuro Smilix Dental OS */
+
 .pageShell {
-  padding-top: 1rem;
+  width: min(1240px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.25rem 0 3rem;
 }
 
 .hero {
@@ -11,8 +15,9 @@
   display: inline-flex;
   margin-bottom: 0.65rem;
   padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(45, 212, 191, 0.26);
   border-radius: 999px;
-  background: rgba(234, 240, 255, 0.95);
+  background: var(--primary-soft);
   color: var(--primary-strong);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -28,6 +33,7 @@
 .heroHeader h1 {
   margin: 0;
   font-size: clamp(2rem, 3vw, 2.6rem);
+  color: var(--text-strong);
 }
 
 .heroCopy {
@@ -70,24 +76,42 @@
 
 .dayCard {
   border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 245, 255, 0.88));
-  border: 1px solid transparent;
+  background: linear-gradient(
+    165deg,
+    rgba(23, 34, 56, 0.92),
+    rgba(11, 18, 32, 0.9)
+  );
+  border: 1px solid var(--border);
   padding: 1rem;
   min-height: 128px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  color: var(--text);
+  text-align: left;
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .dayCard:hover {
   transform: translateY(-1px);
+  border-color: var(--border-strong);
+  background: linear-gradient(
+    165deg,
+    rgba(30, 43, 70, 0.94),
+    rgba(13, 21, 37, 0.92)
+  );
 }
 
 .selected {
-  border-color: var(--primary);
-  box-shadow: 0 24px 40px rgba(65, 93, 199, 0.12);
+  border-color: rgba(45, 212, 191, 0.55);
+  background: linear-gradient(
+    165deg,
+    rgba(23, 48, 54, 0.94),
+    rgba(11, 26, 32, 0.92)
+  );
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
 }
 
 .dayLabel {
@@ -109,6 +133,7 @@
 .dayDate {
   font-size: 0.95rem;
   margin-top: 0.45rem;
+  color: var(--text-strong);
 }
 
 .appointmentSummary {
@@ -136,16 +161,42 @@
   display: inline-flex;
   align-items: center;
   padding: 0.35rem 0.8rem;
+  border: 1px solid transparent;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--text);
 }
 
-.statusAgendado { background: #3b82f6; }
-.statusConfirmado { background: #10b981; }
-.statusFinalizada { background: #6b7280; }
-.statusCancelada { background: #ef4444; }
+.statusAgendado {
+  border-color: rgba(96, 165, 250, 0.4);
+  background: rgba(59, 130, 246, 0.18);
+  color: #bfdbfe;
+}
+
+.statusConfirmado {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(16, 185, 129, 0.16);
+  color: var(--success-text);
+}
+
+.statusFinalizada {
+  border-color: rgba(148, 170, 210, 0.35);
+  background: rgba(148, 163, 184, 0.16);
+  color: #d4deea;
+}
+
+.statusCancelada {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(239, 68, 68, 0.16);
+  color: var(--danger-text);
+}
+
+.statusCounter {
+  border-color: rgba(45, 212, 191, 0.4);
+  background: rgba(45, 212, 191, 0.16);
+  color: var(--primary-strong);
+}
 
 .dayNoteSection {
   display: grid;
@@ -157,8 +208,12 @@
 .notePanel,
 .formPanel {
   border-radius: 28px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 246, 255, 0.9));
-  border: 1px solid rgba(65, 93, 199, 0.08);
+  background: linear-gradient(
+    180deg,
+    rgba(20, 30, 50, 0.9),
+    rgba(11, 18, 32, 0.9)
+  );
+  border: 1px solid var(--border);
   padding: 1.2rem;
 }
 
@@ -173,6 +228,7 @@
 .panelHeader h2 {
   margin: 0;
   font-size: 1.15rem;
+  color: var(--text-strong);
 }
 
 .panelContent {
@@ -183,8 +239,16 @@
 .appointmentCard {
   padding: 1rem;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(65, 93, 199, 0.08);
+  background: rgba(22, 33, 56, 0.88);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-align: left;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.appointmentCard:hover {
+  border-color: rgba(45, 212, 191, 0.4);
+  background: rgba(26, 40, 66, 0.92);
 }
 
 .appointmentCardHeader {
@@ -196,6 +260,7 @@
 
 .appointmentCardHeader strong {
   font-size: 0.95rem;
+  color: var(--text-strong);
 }
 
 .appointmentMeta {
@@ -209,6 +274,7 @@
   gap: 1rem;
   flex-wrap: wrap;
   margin-top: 0.75rem;
+  color: var(--text-soft);
 }
 
 .fieldGroup {
@@ -228,11 +294,11 @@
 .fieldGroup select,
 .fieldGroup textarea {
   width: 100%;
-  border: 1px solid rgba(65, 93, 199, 0.12);
+  border: 1px solid var(--border-strong);
   border-radius: 18px;
   padding: 0.85rem 1rem;
-  background: #fff;
-  color: var(--text-strong);
+  background: rgba(11, 18, 32, 0.72);
+  color: var(--text);
   font-size: 0.95rem;
 }
 
@@ -249,40 +315,59 @@
 }
 
 .primaryButton,
-.secondaryButton {
-  border: 0;
+.secondaryButton,
+.dangerButton {
+  border: 1px solid transparent;
   border-radius: 999px;
   padding: 0.9rem 1.2rem;
   font-weight: 800;
+  transition: filter 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .primaryButton {
-  background: var(--primary);
-  color: #fcfdff;
+  background: linear-gradient(145deg, #5eead4, #14b8a6);
+  color: var(--on-primary);
+  box-shadow: 0 12px 28px rgba(20, 184, 166, 0.26);
+}
+
+.primaryButton:hover {
+  filter: brightness(1.07);
 }
 
 .secondaryButton {
-  background: rgba(232, 239, 255, 0.92);
-  color: var(--primary-strong);
+  background: rgba(148, 170, 210, 0.1);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.secondaryButton:hover {
+  background: rgba(148, 170, 210, 0.18);
 }
 
 .dangerButton {
-  background: #f87171;
-  color: #fff;
+  background: var(--danger-soft);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: var(--danger-text);
+}
+
+.dangerButton:hover {
+  background: rgba(239, 68, 68, 0.24);
 }
 
 .errorBox {
   margin-top: 1rem;
   padding: 0.9rem 1rem;
   border-radius: 18px;
-  background: rgba(210, 80, 106, 0.1);
-  color: #9e2d53;
+  border: 1px solid rgba(248, 113, 113, 0.32);
+  background: var(--danger-soft);
+  color: var(--danger-text);
 }
 
 .feedbackBox {
   margin-top: 1rem;
   padding: 0.9rem 1rem;
   border-radius: 18px;
+  border: 1px solid rgba(45, 212, 191, 0.3);
   background: var(--primary-soft);
   color: var(--primary-strong);
 }
@@ -303,7 +388,26 @@
 }
 
 @media (max-width: 640px) {
+  .pageShell {
+    width: min(100% - 1rem, 1240px);
+    padding-top: 0.75rem;
+  }
+
   .calendarGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dayCard,
+  .appointmentCard,
+  .primaryButton,
+  .secondaryButton,
+  .dangerButton {
+    transition: none;
+  }
+
+  .dayCard:hover {
+    transform: none;
   }
 }

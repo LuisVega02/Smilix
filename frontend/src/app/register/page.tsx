@@ -133,7 +133,9 @@ export default function RegisterPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#070b14',
+        backgroundImage:
+          'radial-gradient(circle at 15% 8%, rgba(45, 212, 191, 0.16), transparent 42%), radial-gradient(circle at 85% 0%, rgba(96, 165, 250, 0.13), transparent 38%), linear-gradient(180deg, #070b14 0%, #08101f 60%, #060a12 100%)',
         padding: '1rem',
       }}
     >
@@ -141,10 +143,12 @@ export default function RegisterPage() {
         style={{
           width: '100%',
           maxWidth: '450px',
-          backgroundColor: 'white',
+          backgroundColor: 'rgba(15, 22, 38, 0.9)',
           padding: '2rem',
-          borderRadius: '8px',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          borderRadius: '20px',
+          border: '1px solid rgba(148, 170, 210, 0.16)',
+          boxShadow: '0 30px 80px rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(18px)',
         }}
       >
         {/* ENCABEZADO */}
@@ -154,6 +158,7 @@ export default function RegisterPage() {
             fontWeight: 'bold',
             marginBottom: '0.5rem',
             textAlign: 'center',
+            color: 'var(--text-strong)',
           }}
         >
           Clínica Dental
@@ -161,7 +166,7 @@ export default function RegisterPage() {
         <p
           style={{
             textAlign: 'center',
-            color: '#666',
+            color: 'var(--text-soft)',
             marginBottom: '2rem',
             fontSize: '14px',
           }}
@@ -173,10 +178,11 @@ export default function RegisterPage() {
         {error && (
           <div
             style={{
-              backgroundColor: '#fee2e2',
-              color: '#991b1b',
+              backgroundColor: 'var(--danger-soft)',
+              color: 'var(--danger-text)',
+              border: '1px solid rgba(248, 113, 113, 0.32)',
               padding: '0.75rem',
-              borderRadius: '4px',
+              borderRadius: '12px',
               marginBottom: '1rem',
               fontSize: '14px',
             }}
@@ -199,7 +205,7 @@ export default function RegisterPage() {
                 fontSize: '14px',
                 fontWeight: '500',
                 marginBottom: '0.5rem',
-                color: '#333',
+                color: 'var(--text)',
               }}
             >
               Nombre completo
@@ -214,8 +220,10 @@ export default function RegisterPage() {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
+                border: '1px solid rgba(148, 170, 210, 0.3)',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(11, 18, 32, 0.72)',
+                color: 'var(--text)',
                 fontSize: '14px',
                 boxSizing: 'border-box',
                 opacity: isLoading ? 0.6 : 1,
@@ -232,7 +240,7 @@ export default function RegisterPage() {
                 fontSize: '14px',
                 fontWeight: '500',
                 marginBottom: '0.5rem',
-                color: '#333',
+                color: 'var(--text)',
               }}
             >
               Email
@@ -247,8 +255,10 @@ export default function RegisterPage() {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
+                border: '1px solid rgba(148, 170, 210, 0.3)',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(11, 18, 32, 0.72)',
+                color: 'var(--text)',
                 fontSize: '14px',
                 boxSizing: 'border-box',
                 opacity: isLoading ? 0.6 : 1,
@@ -265,7 +275,7 @@ export default function RegisterPage() {
                 fontSize: '14px',
                 fontWeight: '500',
                 marginBottom: '0.5rem',
-                color: '#333',
+                color: 'var(--text)',
               }}
             >
               Contraseña (mínimo 6 caracteres)
@@ -282,8 +292,10 @@ export default function RegisterPage() {
                   width: '100%',
                   padding: '0.75rem',
                   paddingRight: '40px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
+                  border: '1px solid rgba(148, 170, 210, 0.3)',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(11, 18, 32, 0.72)',
+                  color: 'var(--text)',
                   fontSize: '14px',
                   boxSizing: 'border-box',
                   opacity: isLoading ? 0.6 : 1,
@@ -293,6 +305,7 @@ export default function RegisterPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={isLoading}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 style={{
                   position: 'absolute',
                   right: '10px',
@@ -319,7 +332,7 @@ export default function RegisterPage() {
                 fontSize: '14px',
                 fontWeight: '500',
                 marginBottom: '0.5rem',
-                color: '#333',
+                color: 'var(--text)',
               }}
             >
               Confirmar contraseña
@@ -336,8 +349,10 @@ export default function RegisterPage() {
                   width: '100%',
                   padding: '0.75rem',
                   paddingRight: '40px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
+                  border: '1px solid rgba(148, 170, 210, 0.3)',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(11, 18, 32, 0.72)',
+                  color: 'var(--text)',
                   fontSize: '14px',
                   boxSizing: 'border-box',
                   opacity: isLoading ? 0.6 : 1,
@@ -347,6 +362,9 @@ export default function RegisterPage() {
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={isLoading}
+                aria-label={
+                  showConfirmPassword ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'
+                }
                 style={{
                   position: 'absolute',
                   right: '10px',
@@ -370,13 +388,23 @@ export default function RegisterPage() {
             disabled={isLoading}
             style={{
               padding: '0.75rem',
-              backgroundColor: isLoading ? '#ccc' : '#10b981',
-              color: 'white',
+              background: isLoading
+                ? 'rgba(148, 170, 210, 0.24)'
+                : 'linear-gradient(145deg, #5eead4, #14b8a6)',
+              color: isLoading ? 'var(--text-soft)' : 'var(--on-primary)',
               fontWeight: 'bold',
               border: 'none',
-              borderRadius: '4px',
+              borderRadius: '12px',
+              boxShadow: isLoading ? 'none' : '0 12px 28px rgba(20, 184, 166, 0.28)',
               cursor: isLoading ? 'not-allowed' : 'pointer',
               fontSize: '16px',
+              transition: 'filter 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading) e.currentTarget.style.filter = 'brightness(1.07)';
+            }}
+            onMouseLeave={(e) => {
+              if (!isLoading) e.currentTarget.style.filter = '';
             }}
           >
             {isLoading ? 'Registrando...' : 'Crear cuenta'}
@@ -392,9 +420,9 @@ export default function RegisterPage() {
             gap: '1rem',
           }}
         >
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
-          <span style={{ color: '#999', fontSize: '12px' }}>O</span>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#ddd' }} />
+          <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(148, 170, 210, 0.18)' }} />
+          <span style={{ color: 'var(--text-soft)', fontSize: '12px' }}>O</span>
+          <div style={{ flex: 1, height: '1px', backgroundColor: 'rgba(148, 170, 210, 0.18)' }} />
         </div>
 
         {/* BOTÓN VOLVER AL LOGIN */}
@@ -404,11 +432,11 @@ export default function RegisterPage() {
           style={{
             width: '100%',
             padding: '0.75rem',
-            backgroundColor: '#f3f4f6',
-            color: '#333',
+            backgroundColor: 'rgba(148, 170, 210, 0.1)',
+            color: 'var(--text)',
             fontWeight: '500',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
+            border: '1px solid rgba(148, 170, 210, 0.24)',
+            borderRadius: '12px',
             cursor: isLoading ? 'not-allowed' : 'pointer',
             fontSize: '16px',
             opacity: isLoading ? 0.5 : 1,
@@ -421,7 +449,7 @@ export default function RegisterPage() {
         <p
           style={{
             fontSize: '12px',
-            color: '#999',
+            color: 'var(--text-soft)',
             marginTop: '1rem',
             textAlign: 'center',
           }}

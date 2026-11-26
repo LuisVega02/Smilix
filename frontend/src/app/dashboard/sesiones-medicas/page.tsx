@@ -249,10 +249,10 @@ export default function MedicalSessionsPage() {
             </div>
 
             {error ? (
-              <p style={{ color: '#b91c1c', marginTop: '1rem' }}>{error}</p>
+              <p className={styles.errorText}>{error}</p>
             ) : null}
             {feedback ? (
-              <p style={{ color: '#166534', marginTop: '1rem' }}>{feedback}</p>
+              <p className={styles.feedbackText}>{feedback}</p>
             ) : null}
 
             <div className={styles.sectionAccordionActions}>

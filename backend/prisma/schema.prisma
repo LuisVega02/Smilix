@@ -74,7 +74,23 @@ model Patient {
   appointments Appointment[]
   treatments   Treatment[]
   payments     Payment[]
-  
+
+  // F4 - Flujo clínico (aditivo)
+  patientPathologies PatientPathology[]
+  patientConditions  PatientCondition[]
+  patientAllergies   PatientAllergy[]
+  prescriptions      Prescription[]
+
+  // F5 - Odontogramas del paciente (aditivo)
+  odontograms Odontogram[]
+
+  // F6 - Órdenes de venta (aditivo)
+  saleOrders SaleOrder[]
+
+  // Relación opcional con la entidad base Persona (F2 - aditivo)
+  personId Int?    @unique
+  person   Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -97,6 +113,16 @@ model MedicalSession {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
+  // F4 - Flujo clínico (aditivo)
+  treatments         Treatment[]
+  patientPathologies PatientPathology[]
+  patientConditions  PatientCondition[]
+  prescriptions      Prescription[]
+
+  // F6 - Órdenes de venta y líneas (aditivo)
+  saleOrders     SaleOrder[]
+  saleOrderLines SaleOrderLine[]
+
   @@map("medical_sessions")
 }
 
@@ -109,7 +135,95 @@ model Odontogram {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
+  // F4 - Tratamientos que referencian este odontograma (aditivo)
+  treatments       Treatment[]
+
+  // F5 - Datos clínicos del odontograma (aditivo, nullable para no romper datos)
+  patientId     Int?
+  patient       Patient?   @relation(fields: [patientId], references: [id], onDelete: SetNull)
+  doctorId      Int?
+  doctor        Physician? @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  scheduledDate DateTime?
+
+  findings OdontogramFinding[]
+
+  // F6 - Órdenes de venta y líneas generadas desde este odontograma (aditivo)
+  saleOrders     SaleOrder[]
+  saleOrderLines SaleOrderLine[]
+
+  @@index([patientId])
+  @@index([doctorId])
   @@map("odontograms")
+}
+
+// ============================================================
+// F5 - Catálogo de piezas dentales y hallazgos del odontograma
+// Inspirado en odoo_hms_dental / odoo_hms_dental_odontogram.
+// Modelos ADITIVOS: no alteran la información existente.
+// ============================================================
+
+// Pieza dental del catálogo (dentición permanente o temporal).
+model Tooth {
+  id        Int     @id @default(autoincrement())
+  name      String
+  dentition String
+  type      String
+  tooth     String
+  face      String?
+  jaw       String
+  order     Int
+  imageUrl  String?
+  active    Boolean @default(true)
+
+  findings OdontogramFinding[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // face es nullable: PostgreSQL trata los NULL como distintos en un unique,
+  // por lo que el compuesto se limita a tooth+dentition (ver seed).
+  @@unique([tooth, dentition])
+  @@index([dentition])
+  @@map("teeth")
+}
+
+// Hallazgo (condición o tratamiento) registrado sobre una pieza dental.
+model OdontogramFinding {
+  id           Int        @id @default(autoincrement())
+  odontogramId Int
+  odontogram   Odontogram @relation(fields: [odontogramId], references: [id], onDelete: Cascade)
+
+  toothId   Int?
+  tooth     Tooth? @relation(fields: [toothId], references: [id], onDelete: SetNull)
+  toothCode String?
+  face      String?
+  dentition String?
+
+  // 'CONDITION' | 'TREATMENT'
+  kind String
+
+  medicalConditionId Int?
+  medicalCondition   MedicalCondition? @relation(fields: [medicalConditionId], references: [id], onDelete: SetNull)
+
+  treatmentCatalogId Int?
+  treatmentCatalog   TreatmentCatalog? @relation(fields: [treatmentCatalogId], references: [id], onDelete: SetNull)
+
+  pathologyId Int?
+  pathology   Pathology? @relation(fields: [pathologyId], references: [id], onDelete: SetNull)
+
+  notes  String? @db.Text
+  cured  Boolean @default(false)
+  status String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([odontogramId])
+  @@index([toothId])
+  @@index([medicalConditionId])
+  @@index([treatmentCatalogId])
+  @@index([pathologyId])
+  @@map("odontogram_findings")
 }
 
 model MedicalBudget {
@@ -194,14 +308,36 @@ model Treatment {
   // Odontograma
   tooth         Int? // Número de pieza dental (1-32)
   procedure     String?
-  
+  faces         String? // Caras dentales afectadas (ej. "MESIAL,OCLUSAL")
+
+  // F4 - Vínculos con el flujo clínico (aditivo, nullable)
+  medicalSessionId Int?
+  medicalSession   MedicalSession? @relation(fields: [medicalSessionId], references: [id], onDelete: SetNull)
+
+  treatmentCatalogId Int?
+  treatmentCatalog   TreatmentCatalog? @relation(fields: [treatmentCatalogId], references: [id], onDelete: SetNull)
+
+  pathologyId Int?
+  pathology   Pathology? @relation(fields: [pathologyId], references: [id], onDelete: SetNull)
+
+  odontogramId Int?
+  odontogram   Odontogram? @relation(fields: [odontogramId], references: [id], onDelete: SetNull)
+
   // Relaciones
   appointments Appointment[]
   payments     Payment[]
-  
+  procedureActs ProcedureAct[]
+
+  // F6 - Líneas de orden de venta que referencian este tratamiento (aditivo)
+  saleOrderLines SaleOrderLine[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([medicalSessionId])
+  @@index([treatmentCatalogId])
+  @@index([pathologyId])
+  @@index([odontogramId])
   @@map("treatments")
 }
 
@@ -252,4 +388,504 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+// ============================================================
+// F2 - Abstracción base "Persona + etiquetas"
+// Inspirado en res.partner / res.partner.category de Odoo.
+// Modelos ADITIVOS: no alteran los modelos existentes más allá
+// de relaciones opcionales (nullable) para no romper datos.
+// ============================================================
+
+// Persona: entidad base compartida por pacientes y médicos.
+model Person {
+  id            Int       @id @default(autoincrement())
+  firstName     String
+  lastNameFather String
+  lastNameMother String?
+  docType       String?
+  docNumber     String?   @unique
+  birthDate     DateTime?
+  gender        String?
+  email         String?   @unique
+  phones        String[]  @default([])
+  address       String?
+  photoUrl      String?
+  notes         String?   @db.Text
+  active        Boolean   @default(true)
+
+  // Tutor legal / apoderado (relación autorreferente opcional)
+  legalParentId Int?
+  legalParent   Person?   @relation("PersonGuardian", fields: [legalParentId], references: [id], onDelete: SetNull)
+  wards         Person[]  @relation("PersonGuardian")
+
+  // Etiquetas (equivalente a res.partner.category)
+  tags PersonTag[]
+
+  // Vínculos con entidades de dominio existentes
+  patients   Patient[]
+  physicians Physician[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("persons")
+}
+
+// Etiqueta reutilizable para clasificar personas.
+model PersonTag {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  label  String?
+  color  String?
+
+  persons Person[]
+
+  @@map("person_tags")
+}
+
+// Sede / clínica física.
+model Facility {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String?  @unique
+  address   String?
+  phone     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("facilities")
+}
+
+// Médico / odontólogo, apoyado sobre la entidad base Person.
+model Physician {
+  id          Int     @id @default(autoincrement())
+  personId    Int     @unique
+  person      Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  name        String?
+  registerRnp String?
+  registerRne String?
+  isManager   Boolean @default(false)
+  active      Boolean @default(true)
+
+  // F4 - Patologías registradas por este médico (aditivo)
+  patientPathologies PatientPathology[]
+
+  // F5 - Odontogramas en los que participa como doctor (aditivo)
+  odontograms Odontogram[]
+
+  // F6 - Órdenes de venta atendidas por este médico (aditivo)
+  saleOrders SaleOrder[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("physicians")
+}
+
+// ============================================================
+// F3 - Catálogos clínicos
+// Inspirados en los catálogos de Odoo HMS (CIE-10, patologías,
+// condiciones médicas, tratamientos, procedimientos, medicamentos,
+// alergias y tipos de examen).
+// Modelos ADITIVOS: no modifican los modelos existentes.
+// ============================================================
+
+// Catálogo de diagnósticos CIE-10.
+model Cie10 {
+  id          Int     @id @default(autoincrement())
+  code        String  @unique
+  name        String
+  description String?
+  active      Boolean @default(true)
+
+  pathologies Pathology[]
+  treatments  TreatmentCatalog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("cie10")
+}
+
+// Patología, opcionalmente vinculada a un código CIE-10.
+model Pathology {
+  id          Int     @id @default(autoincrement())
+  code        String?
+  name        String
+  description String? @db.Text
+  cie10Id     Int?
+  cie10       Cie10?  @relation(fields: [cie10Id], references: [id], onDelete: SetNull)
+  active      Boolean @default(true)
+
+  treatments TreatmentCatalog[]
+  treatmentActs Treatment[]
+  patientPathologies PatientPathology[]
+  odontogramFindings OdontogramFinding[]
+
+  // F6 - Líneas de orden de venta que referencian esta patología (aditivo)
+  saleOrderLines SaleOrderLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pathologies")
+}
+
+// Condición médica del paciente (antecedentes, afecciones).
+model MedicalCondition {
+  id              Int     @id @default(autoincrement())
+  code            String?
+  name            String
+  description     String? @db.Text
+  dentalAffection String?
+  active          Boolean @default(true)
+
+  // F4 - Condiciones registradas por paciente (aditivo)
+  patientConditions PatientCondition[]
+
+  // F5 - Hallazgos de odontograma que usan esta condición (aditivo)
+  odontogramFindings OdontogramFinding[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("medical_conditions")
+}
+
+// Catálogo maestro de tratamientos.
+model TreatmentCatalog {
+  id          Int      @id @default(autoincrement())
+  code        String?
+  name        String
+  description String?  @db.Text
+  price       Decimal  @default(0)
+  durationMin Int      @default(0)
+  cie10Id     Int?
+  cie10       Cie10?   @relation(fields: [cie10Id], references: [id], onDelete: SetNull)
+  pathologyId Int?
+  pathology   Pathology? @relation(fields: [pathologyId], references: [id], onDelete: SetNull)
+  active      Boolean  @default(true)
+
+  procedures ProcedureCatalog[]
+
+  // F4 - Tratamientos clínicos que usan esta plantilla (aditivo)
+  treatments Treatment[]
+
+  // F5 - Hallazgos de odontograma que usan esta plantilla (aditivo)
+  odontogramFindings OdontogramFinding[]
+
+  // F6 - Líneas de orden de venta que usan esta plantilla (aditivo)
+  saleOrderLines SaleOrderLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("treatment_catalog")
+}
+
+// Procedimientos que componen un tratamiento del catálogo.
+model ProcedureCatalog {
+  id                 Int              @id @default(autoincrement())
+  name               String
+  description        String?
+  treatmentCatalogId Int
+  treatment          TreatmentCatalog @relation(fields: [treatmentCatalogId], references: [id], onDelete: Cascade)
+  sequence           Int              @default(0)
+  type               String?
+  labWaitDays        Int              @default(0)
+  active             Boolean          @default(true)
+
+  // F4 - Actos de procedimiento ejecutados (aditivo)
+  procedureActs ProcedureAct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("procedure_catalog")
+}
+
+// Catálogo de medicamentos.
+model Medication {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  dose        String?
+  active      Boolean @default(true)
+
+  // F4 - Prescripciones que usan este medicamento (aditivo)
+  prescriptions Prescription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("medications")
+}
+
+// Catálogo de alergias.
+model Allergy {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  active      Boolean @default(true)
+
+  // F4 - Alergias registradas por paciente (aditivo)
+  patientAllergies PatientAllergy[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("allergies")
+}
+
+// Catálogo de tipos de examen.
+model ExamType {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  active      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("exam_types")
+}
+
+// ============================================================
+// F4 - Flujo clínico sobre MedicalSession
+// Inspirado en Odoo HMS: diagnostic_act, treatments_act,
+// procedures_act, prescription y alergias del paciente.
+// Modelos ADITIVOS: no alteran la información existente.
+// ============================================================
+
+// Patología diagnosticada a un paciente (diagnostic_act).
+model PatientPathology {
+  id        Int     @id @default(autoincrement())
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  medicalSessionId Int?
+  medicalSession   MedicalSession? @relation(fields: [medicalSessionId], references: [id], onDelete: SetNull)
+
+  pathologyId Int
+  pathology   Pathology @relation(fields: [pathologyId], references: [id], onDelete: Restrict)
+
+  doctorId Int?
+  doctor   Physician? @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+
+  date    DateTime @default(now())
+  notes   String?  @db.Text
+  state   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([medicalSessionId])
+  @@index([pathologyId])
+  @@index([doctorId])
+  @@map("patient_pathologies")
+}
+
+// Condición / antecedente médico del paciente asociado a pieza dental.
+model PatientCondition {
+  id        Int     @id @default(autoincrement())
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  medicalSessionId Int?
+  medicalSession   MedicalSession? @relation(fields: [medicalSessionId], references: [id], onDelete: SetNull)
+
+  medicalConditionId Int
+  medicalCondition   MedicalCondition @relation(fields: [medicalConditionId], references: [id], onDelete: Restrict)
+
+  tooth     String?
+  face      String?
+  dentition String?
+  cured     Boolean @default(false)
+  notes     String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([medicalSessionId])
+  @@index([medicalConditionId])
+  @@map("patient_conditions")
+}
+
+// Alergia registrada a un paciente.
+model PatientAllergy {
+  id        Int     @id @default(autoincrement())
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  allergyId Int
+  allergy   Allergy @relation(fields: [allergyId], references: [id], onDelete: Restrict)
+
+  severity String?
+  notes    String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([patientId, allergyId])
+  @@index([patientId])
+  @@index([allergyId])
+  @@map("patient_allergies")
+}
+
+// Prescripción / receta médica del paciente.
+model Prescription {
+  id        Int     @id @default(autoincrement())
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  medicalSessionId Int?
+  medicalSession   MedicalSession? @relation(fields: [medicalSessionId], references: [id], onDelete: SetNull)
+
+  medicationId Int?
+  medication   Medication? @relation(fields: [medicationId], references: [id], onDelete: SetNull)
+
+  medicationName String?
+  dose           String?
+  frequency      String?
+  duration       String?
+  instructions   String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([medicalSessionId])
+  @@index([medicationId])
+  @@map("prescriptions")
+}
+
+// Procedimiento ejecutado dentro de un tratamiento (procedures_act).
+model ProcedureAct {
+  id          Int       @id @default(autoincrement())
+  treatmentId Int
+  treatment   Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  procedureCatalogId Int
+  procedureCatalog   ProcedureCatalog @relation(fields: [procedureCatalogId], references: [id], onDelete: Restrict)
+
+  date   DateTime @default(now())
+  notes  String?
+  status String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([treatmentId])
+  @@index([procedureCatalogId])
+  @@map("procedure_acts")
+}
+
+// ============================================================
+// F6 - Orden de venta odontológica
+// Inspirada en sale.order / sale.order.line de Odoo, con cuotas
+// (installment_payments). Modelos ADITIVOS: no alteran los datos
+// existentes; todas las relaciones externas son opcionales salvo
+// el paciente, que es obligatorio.
+// ============================================================
+
+// Orden de venta (presupuesto/plan de tratamiento facturable).
+model SaleOrder {
+  id     Int     @id @default(autoincrement())
+  code   String? @unique
+
+  patientId Int
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  medicalSessionId Int?
+  medicalSession   MedicalSession? @relation(fields: [medicalSessionId], references: [id], onDelete: SetNull)
+
+  odontogramId Int?
+  odontogram   Odontogram? @relation(fields: [odontogramId], references: [id], onDelete: SetNull)
+
+  doctorId Int?
+  doctor   Physician? @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+
+  // 'DRAFT' | 'CONFIRMED' | 'PAID' | 'CANCELLED'
+  status            String  @default("DRAFT")
+  total             Decimal @default(0)
+  notes             String? @db.Text
+  installmentsCount Int     @default(1)
+
+  lines        SaleOrderLine[]
+  installments InstallmentPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([medicalSessionId])
+  @@index([odontogramId])
+  @@index([doctorId])
+  @@index([status])
+  @@map("sale_orders")
+}
+
+// Línea de la orden de venta (tratamiento/procedimiento cotizado).
+model SaleOrderLine {
+  id          Int       @id @default(autoincrement())
+  saleOrderId Int
+  saleOrder   SaleOrder @relation(fields: [saleOrderId], references: [id], onDelete: Cascade)
+
+  description String? @db.Text
+
+  pathologyId Int?
+  pathology   Pathology? @relation(fields: [pathologyId], references: [id], onDelete: SetNull)
+
+  treatmentCatalogId Int?
+  treatmentCatalog   TreatmentCatalog? @relation(fields: [treatmentCatalogId], references: [id], onDelete: SetNull)
+
+  treatmentId Int?
+  treatment   Treatment? @relation(fields: [treatmentId], references: [id], onDelete: SetNull)
+
+  medicalSessionId Int?
+  medicalSession   MedicalSession? @relation(fields: [medicalSessionId], references: [id], onDelete: SetNull)
+
+  odontogramId Int?
+  odontogram   Odontogram? @relation(fields: [odontogramId], references: [id], onDelete: SetNull)
+
+  tooth     String?
+  faces     String?
+  quantity  Int      @default(1)
+  unitPrice Decimal  @default(0)
+  subtotal  Decimal  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([saleOrderId])
+  @@index([pathologyId])
+  @@index([treatmentCatalogId])
+  @@index([treatmentId])
+  @@index([medicalSessionId])
+  @@index([odontogramId])
+  @@map("sale_order_lines")
+}
+
+// Cuota / vencimiento de pago asociado a una orden de venta.
+model InstallmentPayment {
+  id          Int       @id @default(autoincrement())
+  saleOrderId Int
+  saleOrder   SaleOrder @relation(fields: [saleOrderId], references: [id], onDelete: Cascade)
+
+  number  Int
+  dueDate DateTime?
+  amount  Decimal   @default(0)
+  paid    Boolean   @default(false)
+  paidAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([saleOrderId, number])
+  @@index([saleOrderId])
+  @@map("installment_payments")
 }

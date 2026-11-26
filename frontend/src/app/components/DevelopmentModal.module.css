@@ -1,3 +1,5 @@
+/* DevelopmentModal — tema oscuro Smilix Dental OS */
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -5,20 +7,30 @@
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(29, 47, 96, 0.42);
+  background: rgba(3, 6, 12, 0.72);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .modal {
   width: min(100%, 460px);
   border-radius: 28px;
   padding: 2rem;
+  background: linear-gradient(
+    170deg,
+    rgba(22, 33, 56, 0.96),
+    rgba(11, 18, 32, 0.96)
+  );
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.72);
+  color: var(--text);
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(45, 212, 191, 0.3);
   border-radius: 999px;
   background: var(--primary-soft);
   color: var(--primary-strong);
@@ -30,6 +42,7 @@
 
 .title {
   margin: 1rem 0 0.75rem;
+  color: var(--text-strong);
   font-family: var(--font-heading);
   font-size: 2.2rem;
 }
@@ -50,7 +63,19 @@
   border: 0;
   border-radius: 999px;
   padding: 0.85rem 1.35rem;
-  background: var(--primary);
-  color: #f8fbff;
+  background: linear-gradient(145deg, #5eead4, #14b8a6);
+  color: var(--on-primary);
   font-weight: 700;
+  box-shadow: 0 12px 28px rgba(20, 184, 166, 0.26);
+  transition: filter 0.18s ease;
+}
+
+.primaryButton:hover {
+  filter: brightness(1.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryButton {
+    transition: none;
+  }
 }

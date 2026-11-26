@@ -1,0 +1,93 @@
+# Producción/QA — Smilix en Raspberry Pi 3B+ (ARM64) con Tailscale en Docker.
+#
+# Patrón: un contenedor `tailscale` (sidecar) crea la interfaz de la malla;
+# postgres/backend/frontend comparten su namespace de red (network_mode:
+# "service:tailscale"), por lo que solo son accesibles por la red Tailscale
+# (y se hablan entre ellos por 127.0.0.1).
+#
+# Uso:
+#   cp .env.prod.example .env.prod   # y rellena los secretos
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+#
+# Acceso desde clientes: instala Tailscale en el dispositivo, inicia sesión en
+# la misma tailnet y abre http://<TS_HOSTNAME>:3000 (MagicDNS) o la IP 100.x.
+name: smilix
+
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: smilix_tailscale
+    hostname: ${TS_HOSTNAME:-smilix}
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:?define TS_AUTHKEY en .env.prod}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_ACCEPT_DNS: "true"
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: smilix_postgres
+    network_mode: "service:tailscale"
+    environment:
+      POSTGRES_USER: ${DB_USER:-clinicuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?define DB_PASSWORD en .env.prod}
+      POSTGRES_DB: ${DB_NAME:-clinic_db}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-clinicuser} -d ${DB_NAME:-clinic_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    depends_on:
+      tailscale:
+        condition: service_started
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: smilix-backend:prod
+    container_name: smilix_backend
+    network_mode: "service:tailscale"
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_URL: postgresql://${DB_USER:-clinicuser}:${DB_PASSWORD}@127.0.0.1:5432/${DB_NAME:-clinic_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?define JWT_SECRET en .env.prod}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://smilix:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        # URL que usará el NAVEGADOR del cliente para llegar al backend (Tailscale/MagicDNS).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://smilix:3001}
+    image: smilix-frontend:prod
+    container_name: smilix_frontend
+    network_mode: "service:tailscale"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  tailscale_state:

@@ -19,6 +19,9 @@ package-lock.json
 .env.local
 .env.*.local
 .env.production.local
+# Entorno de despliegue (contiene secretos: TS_AUTHKEY, JWT_SECRET, DB_PASSWORD)
+.env.prod
+deploy/.env.prod
 
 # ============================================================
 # IDE y editores
